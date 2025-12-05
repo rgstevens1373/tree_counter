@@ -117,30 +117,31 @@ async function removeTree() { await updateCounts(-1); }
 // --- Update counts and append timestamped log ---
 async function updateCounts(change) {
   try {
-    // Update global count (only increases)
-    if (change > 0) {
-      const global = await pb.collection(globalCollection).getOne(globalRecordId);
-      let logs = global.logs || [];
-      logs.push({ type: "add", timestamp: new Date().toISOString() });
+    // --- Update global count ---
+    const global = await pb.collection(globalCollection).getOne(globalRecordId);
+    let globalCount = Math.max(0, global.count + change);
 
-      await pb.collection(globalCollection).update(globalRecordId, {
-        count: global.count + 1,
-        logs: logs
-      });
-    }
+    let globalLogs = global.logs || [];
+    globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
 
-    // Update user count
+    await pb.collection(globalCollection).update(globalRecordId, {
+      count: globalCount,
+      logs: globalLogs
+    });
+
+    // --- Update user count ---
     const userRecord = await pb.collection(userCollection).getOne(userId);
-    let newCount = Math.max(0, userRecord.count + change);
+    let newUserCount = Math.max(0, userRecord.count + change);
 
     let userLogs = userRecord.logs || [];
     userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
 
     await pb.collection(userCollection).update(userId, {
-      count: newCount,
+      count: newUserCount,
       logs: userLogs
     });
 
+    // Refresh display
     loadData();
   } catch (err) {
     console.error("Update failed:", err);
