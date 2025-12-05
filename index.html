@@ -1,158 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🎄 Christmas Tree Counter</title>
 
 <script src="https://unpkg.com/pocketbase@latest/dist/pocketbase.umd.js"></script>
 
 <style>
-    body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-        background: linear-gradient(#b91c1c, #7f1d1d);
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        padding: 20px;
-        color: white;
-    }
-    .container { width: 100%; max-width: 420px; text-align: center; }
-    h1 { font-size: 2.4rem; margin-bottom: 10px; text-shadow: 0 3px 4px rgba(0,0,0,0.3); }
-    .card {
-        background: rgba(255,255,255,0.15);
-        border: 2px solid rgba(255,255,255,0.3);
-        padding: 30px;
-        border-radius: 20px;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 5px 20px rgba(0,0,0,0.25);
-        margin-bottom: 20px;
-    }
-    #totalCount { font-size: 4rem; font-weight: 800; color: #fcd34d; }
-    #userCount { font-size: 2.5rem; font-weight: 700; color: #a3e635; }
-    button {
-        width: 100%; padding: 18px;
-        background: #16a34a; color: white;
-        font-size: 1.5rem; border: none;
-        border-radius: 14px; font-weight: 700;
-        cursor: pointer; margin-top: 20px;
-    }
-    button:hover { background: #15803d; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    background: linear-gradient(#b91c1c, #7f1d1d);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    color: white;
+  }
+  .container { width: 100%; max-width: 420px; text-align: center; }
+  h1 { font-size: 2.4rem; margin-bottom: 10px; text-shadow: 0 3px 4px rgba(0,0,0,0.3); }
+  .card {
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    padding: 30px;
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+    margin-bottom: 20px;
+  }
+  #totalCount { font-size: 4rem; font-weight: 800; color: #fcd34d; }
+  #userCount { font-size: 2.5rem; font-weight: 700; color: #a3e635; }
+  button {
+    width: 100%; padding: 18px;
+    background: #16a34a; color: white;
+    font-size: 1.5rem; border: none;
+    border-radius: 14px; font-weight: 700;
+    cursor: pointer; margin-top: 20px;
+  }
+  button:hover { background: #15803d; }
 </style>
 </head>
 
 <body>
 <div class="container">
 
-    <h1>🎄 Christmas Tree Counter 🎄</h1>
+  <h1>🎄 Christmas Tree Counter 🎄</h1>
 
-    <div class="card">
-        <div>Total Trees</div>
-        <div id="totalCount">0</div>
-    </div>
+  <div class="card">
+    <div>Total Trees</div>
+    <div id="totalCount">0</div>
+  </div>
 
-    <div class="card">
-        <div>Your Trees</div>
-        <div id="userCount">0</div>
-        <button onclick="addTree()">🎁 Add Tree</button>
-        <button onclick="removeTree()">❌ Remove Tree</button>
-    </div>
+  <div class="card">
+    <div>Your Trees</div>
+    <div id="userCount">0</div>
+    <button onclick="addTree()">🎁 Add Tree</button>
+    <button onclick="removeTree()">❌ Remove Tree</button>
+  </div>
 
 </div>
 
 <script>
-    const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
+const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
 
-    const globalRecordId = "qj2f53koqvpy72i"; // global tree_count record
-    const globalCollection = "tree_count";
-    const userCollection = "users";
+// Change this to your global tree_count record ID
+const globalRecordId = "qj2f53koqvpy72i"; 
+const globalCollection = "tree_count";
+const userCollection = "users";
 
-    let userId = null;
-    let userName = null;
+let userId = null;
+let userName = null;
 
-    // --- Step 1: Ask for name ---
-    async function initUser() {
-        userName = localStorage.getItem("treeUserName");
+// --- Step 1: Prompt for name and create user if needed ---
+async function initUser() {
+  userName = localStorage.getItem("treeUserName");
 
-        if (!userName) {
-            userName = prompt("Enter your name:");
-            if (!userName) return;
-            localStorage.setItem("treeUserName", userName);
+  if (!userName) {
+    userName = prompt("Enter your name:");
+    if (!userName) return;
+    localStorage.setItem("treeUserName", userName);
+  }
 
-            try {
-                const newUser = await pb.collection(userCollection).create({
-                    name: userName,
-                    count: 0
-                });
-                userId = newUser.id;
-            } catch (err) {
-                const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
-                userId = existing.id;
-            }
-        } else {
-            const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
-            userId = existing.id;
-        }
+  // Try to create a new user, or get existing
+  try {
+    const newUser = await pb.collection(userCollection).create({
+      name: userName,
+      count: 0,
+      logs: []
+    });
+    userId = newUser.id;
+  } catch (err) {
+    // If creation failed (already exists), fetch existing
+    const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
+    userId = existing.id;
+  }
+}
+
+// --- Load global and user counts ---
+async function loadData() {
+  const global = await pb.collection(globalCollection).getOne(globalRecordId);
+  document.getElementById("totalCount").textContent = global.count;
+
+  const userRecord = await pb.collection(userCollection).getOne(userId);
+  document.getElementById("userCount").textContent = userRecord.count;
+}
+
+// --- Add tree ---
+async function addTree() { await updateCounts(1); }
+
+// --- Remove tree ---
+async function removeTree() { await updateCounts(-1); }
+
+// --- Update counts and append timestamped log ---
+async function updateCounts(change) {
+  try {
+    // Update global count (only increases)
+    if (change > 0) {
+      const global = await pb.collection(globalCollection).getOne(globalRecordId);
+      let logs = global.logs || [];
+      logs.push({ type: "add", timestamp: new Date().toISOString() });
+
+      await pb.collection(globalCollection).update(globalRecordId, {
+        count: global.count + 1,
+        logs: logs
+      });
     }
 
-    // --- Load counts ---
-    async function loadData() {
-        const global = await pb.collection(globalCollection).getOne(globalRecordId);
-        document.getElementById("totalCount").textContent = global.count;
+    // Update user count
+    const userRecord = await pb.collection(userCollection).getOne(userId);
+    let newCount = Math.max(0, userRecord.count + change);
 
-        const userRecord = await pb.collection(userCollection).getOne(userId);
-        document.getElementById("userCount").textContent = userRecord.count;
-    }
+    let userLogs = userRecord.logs || [];
+    userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
 
-    // --- Add tree ---
-    async function addTree() {
-        await updateCounts(1);
-    }
+    await pb.collection(userCollection).update(userId, {
+      count: newCount,
+      logs: userLogs
+    });
 
-    // --- Remove tree ---
-    async function removeTree() {
-        await updateCounts(-1);
-    }
+    loadData();
+  } catch (err) {
+    console.error("Update failed:", err);
+    alert("Error updating counter. See console.");
+  }
+}
 
-    // --- Update counts and append timestamped log ---
-    async function updateCounts(change) {
-        try {
-            // --- Global count only increases ---
-            if (change > 0) {
-                const global = await pb.collection(globalCollection).getOne(globalRecordId);
-                let logs = global.logs || [];
-                logs.push({ type: "add", timestamp: new Date().toISOString() });
-
-                await pb.collection(globalCollection).update(globalRecordId, {
-                    count: global.count + 1,
-                    logs: logs
-                });
-            }
-
-            // --- User count ---
-            const userRecord = await pb.collection(userCollection).getOne(userId);
-            let newCount = Math.max(0, userRecord.count + change);
-
-            let userLogs = userRecord.logs || [];
-            userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-
-            await pb.collection(userCollection).update(userId, {
-                count: newCount,
-                logs: userLogs
-            });
-
-            loadData();
-        } catch (err) {
-            alert("Error updating counter.");
-            console.error(err);
-        }
-    }
-
-    (async function start() {
-        await initUser();
-        await loadData();
-    })();
+// --- Initialize app ---
+(async function start() {
+  await initUser();
+  await loadData();
+})();
 </script>
 </body>
 </html>
