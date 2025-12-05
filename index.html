@@ -19,10 +19,7 @@
         color: white;
     }
     .container { width: 100%; max-width: 420px; text-align: center; }
-    h1 {
-        font-size: 2.4rem; margin-bottom: 10px;
-        text-shadow: 0 3px 4px rgba(0,0,0,0.3);
-    }
+    h1 { font-size: 2.4rem; margin-bottom: 10px; text-shadow: 0 3px 4px rgba(0,0,0,0.3); }
     .card {
         background: rgba(255,255,255,0.15);
         border: 2px solid rgba(255,255,255,0.3);
@@ -42,21 +39,13 @@
         cursor: pointer; margin-top: 20px;
     }
     button:hover { background: #15803d; }
-    #leaderboard {
-        margin-top: 20px;
-        text-align: left;
-        background: rgba(255,255,255,0.1);
-        padding: 15px;
-        border-radius: 12px;
-        font-size: 1.2rem;
-    }
 </style>
 </head>
 
 <body>
 <div class="container">
 
-    <h1>🎄 Christmas Tree Counter</h1>
+    <h1>🎄 Christmas Tree Counter 🎄</h1>
 
     <div class="card">
         <div>Total Trees</div>
@@ -67,11 +56,7 @@
         <div>Your Trees</div>
         <div id="userCount">0</div>
         <button onclick="addTree()">🎁 Add Tree</button>
-    </div>
-
-    <div id="leaderboard" class="card">
-        <strong>Leaderboard</strong>
-        <div id="usersList">Loading...</div>
+        <button onclick="removeTree()">❌ Remove Tree</button>
     </div>
 
 </div>
@@ -79,34 +64,30 @@
 <script>
     const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
 
-    const globalRecordId = "qj2f53koqvpy72i"; 
+    const globalRecordId = "qj2f53koqvpy72i";
     const globalCollection = "tree_count";
 
     const userCollection = "users";
     let userId = null;
     let userName = null;
 
-    // -------------------------------
-    // STEP 1 — Ask for name
-    // -------------------------------
+    // Ask for name
     async function initUser() {
         userName = localStorage.getItem("treeUserName");
 
         if (!userName) {
             userName = prompt("Enter your name:");
             if (!userName) return;
-
             localStorage.setItem("treeUserName", userName);
 
-            // Try to create a user in PocketBase
             try {
                 const newUser = await pb.collection(userCollection).create({
                     name: userName,
-                    count: 0
+                    count: 0,
+                    logs: []
                 });
                 userId = newUser.id;
             } catch (err) {
-                // User already exists → look them up
                 const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
                 userId = existing.id;
             }
@@ -116,45 +97,47 @@
         }
     }
 
-    // -------------------------------
-    // Load global + user data
-    // -------------------------------
+    // Load global + user count
     async function loadData() {
-        // Global count
         const global = await pb.collection(globalCollection).getOne(globalRecordId);
         document.getElementById("totalCount").textContent = global.count;
 
-        // User count
         const userRecord = await pb.collection(userCollection).getOne(userId);
         document.getElementById("userCount").textContent = userRecord.count;
-
-        // Leaderboard
-        const allUsers = await pb.collection(userCollection).getFullList({
-            sort: "-count"
-        });
-
-        const listHTML = allUsers
-            .map(u => `<div>${u.name}: ${u.count}</div>`)
-            .join("");
-
-        document.getElementById("usersList").innerHTML = listHTML;
     }
 
-    // -------------------------------
-    // Add tree (update global + user)
-    // -------------------------------
+    // Add tree
     async function addTree() {
+        await updateCount(1);
+    }
+
+    // Remove tree
+    async function removeTree() {
+        await updateCount(-1);
+    }
+
+    // Update counts and log
+    async function updateCount(change) {
         try {
-            // Update global count
-            const global = await pb.collection(globalCollection).getOne(globalRecordId);
-            await pb.collection(globalCollection).update(globalRecordId, {
-                count: global.count + 1
-            });
+            // Global count only allows positive increments
+            if (change > 0) {
+                const global = await pb.collection(globalCollection).getOne(globalRecordId);
+                await pb.collection(globalCollection).update(globalRecordId, {
+                    count: global.count + change
+                });
+            }
 
             // Update user count
             const userRecord = await pb.collection(userCollection).getOne(userId);
+            let newCount = Math.max(0, userRecord.count + change);
+
+            // Append log
+            let logs = userRecord.logs || [];
+            logs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
+
             await pb.collection(userCollection).update(userId, {
-                count: userRecord.count + 1
+                count: newCount,
+                logs: logs
             });
 
             loadData();
@@ -164,12 +147,10 @@
         }
     }
 
-    // Initialize the whole app
     (async function start() {
         await initUser();
         await loadData();
     })();
 </script>
-
 </body>
 </html>
