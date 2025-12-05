@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>🎄 Christmas Tree Counter</title>
 
 <script src="https://unpkg.com/pocketbase@latest/dist/pocketbase.umd.js"></script>
@@ -12,14 +12,23 @@
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
     background: linear-gradient(#b91c1c, #7f1d1d);
-    min-height: 100vh;
+    color: white;
     display: flex;
     justify-content: center;
     padding: 20px;
-    color: white;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
-  .container { width: 100%; max-width: 420px; text-align: center; }
-  h1 { font-size: 2.4rem; margin-bottom: 10px; text-shadow: 0 3px 4px rgba(0,0,0,0.3); }
+  .container {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+  h1 {
+    font-size: 2.4rem;
+    margin-bottom: 10px;
+    text-shadow: 0 3px 4px rgba(0,0,0,0.3);
+  }
   .card {
     background: rgba(255,255,255,0.15);
     border: 2px solid rgba(255,255,255,0.3);
@@ -28,23 +37,63 @@
     backdrop-filter: blur(12px);
     box-shadow: 0 5px 20px rgba(0,0,0,0.25);
     margin-bottom: 20px;
+    position: relative;
   }
-  #totalCount { font-size: 4rem; font-weight: 800; color: #fcd34d; }
-  #userCount { font-size: 2.5rem; font-weight: 700; color: #a3e635; }
+  #totalCount {
+    font-size: 4rem;
+    font-weight: 800;
+    color: #fcd34d;
+  }
+  #userCount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #a3e635;
+  }
   button {
-    width: 100%; padding: 18px;
-    background: #16a34a; color: white;
-    font-size: 1.5rem; border: none;
-    border-radius: 14px; font-weight: 700;
-    cursor: pointer; margin-top: 20px;
+    width: 100%;
+    padding: 18px;
+    background: #16a34a;
+    color: white;
+    font-size: 1.5rem;
+    border: none;
+    border-radius: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: transform 0.1s ease, background 0.2s ease;
   }
-  button:hover { background: #15803d; }
+  button:hover {
+    background: #15803d;
+  }
+  button:active {
+    transform: scale(0.95);
+    background: #166534;
+  }
+  .snowflake {
+    position: fixed;
+    top: -10px;
+    color: white;
+    font-size: 1.2rem;
+    opacity: 0.9;
+    pointer-events: none;
+    user-select: none;
+    z-index: 9999;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh); }
+  }
+  #logList {
+    margin-top: 10px;
+    text-align: left;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+  }
 </style>
 </head>
-
 <body>
 <div class="container">
-
   <h1>🎄 Christmas Tree Counter 🎄</h1>
 
   <div class="card">
@@ -55,105 +104,135 @@
   <div class="card">
     <div>Your Trees</div>
     <div id="userCount">0</div>
-    <button onclick="addTree()">🎁 Add Tree</button>
-    <button onclick="removeTree()">❌ Remove Tree</button>
+    <button onclick="handleAdd()">🎁 Add Tree</button>
+    <button onclick="handleRemove()">❌ Remove Tree</button>
   </div>
 
+  <div class="card">
+    <button onclick="viewLogs()">📜 View My Log</button>
+    <div id="logList"></div>
+  </div>
 </div>
 
 <script>
-const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
+  const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
+  const globalCollection = "tree_count";
+  const globalRecordId = "qj2f53koqvpy72i";  // Replace with your record ID
+  const userCollection = "users";
 
-// Change this to your global tree_count record ID
-const globalRecordId = "qj2f53koqvpy72i"; 
-const globalCollection = "tree_count";
-const userCollection = "users";
+  let userId = null;
+  let userName = null;
 
-let userId = null;
-let userName = null;
-
-// --- Step 1: Prompt for name and create user if needed ---
-async function initUser() {
+  // Prompt for user name and create/fetch record
+  async function initUser() {
     userName = localStorage.getItem("treeUserName");
-
     if (!userName) {
-        userName = prompt("Enter your name:");
-        if (!userName) return;
-        localStorage.setItem("treeUserName", userName);
+      userName = prompt("Enter your name:");
+      if (!userName) {
+        alert("Name is required!");
+        return;
+      }
+      localStorage.setItem("treeUserName", userName);
     }
-
-    // Try to fetch existing user
     try {
-        const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
-        userId = existing.id;
-    } catch (err) {
-        // If not found, create a new user
-        const newUser = await pb.collection(userCollection).create({
-            name: userName,
-            count: 0,
-            logs: []
-        });
-        userId = newUser.id;
+      const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
+      userId = existing.id;
+    } catch {
+      const newUser = await pb.collection(userCollection).create({
+        name: userName,
+        count: 0,
+        logs: []
+      });
+      userId = newUser.id;
     }
-
-    console.log("userId:", userId);
-}
-
-// --- Load global and user counts ---
-async function loadData() {
-  const global = await pb.collection(globalCollection).getOne(globalRecordId);
-  document.getElementById("totalCount").textContent = global.count;
-
-  const userRecord = await pb.collection(userCollection).getOne(userId);
-  document.getElementById("userCount").textContent = userRecord.count;
-}
-
-// --- Add tree ---
-async function addTree() { await updateCounts(1); }
-
-// --- Remove tree ---
-async function removeTree() { await updateCounts(-1); }
-
-// --- Update counts and append timestamped log ---
-async function updateCounts(change) {
-  try {
-    // --- Update global count ---
-    const global = await pb.collection(globalCollection).getOne(globalRecordId);
-    let globalCount = Math.max(0, global.count + change);
-
-    let globalLogs = global.logs || [];
-    globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-
-    await pb.collection(globalCollection).update(globalRecordId, {
-      count: globalCount,
-      logs: globalLogs
-    });
-
-    // --- Update user count ---
-    const userRecord = await pb.collection(userCollection).getOne(userId);
-    let newUserCount = Math.max(0, userRecord.count + change);
-
-    let userLogs = userRecord.logs || [];
-    userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-
-    await pb.collection(userCollection).update(userId, {
-      count: newUserCount,
-      logs: userLogs
-    });
-
-    // Refresh display
-    loadData();
-  } catch (err) {
-    console.error("Update failed:", err);
-    alert("Error updating counter. See console.");
   }
-}
 
-// --- Initialize app ---
-(async function start() {
-  await initUser();
-  await loadData();
-})();
+  async function loadData() {
+    const global = await pb.collection(globalCollection).getOne(globalRecordId);
+    document.getElementById("totalCount").textContent = global.count;
+
+    if (userId) {
+      const user = await pb.collection(userCollection).getOne(userId);
+      document.getElementById("userCount").textContent = user.count;
+    }
+  }
+
+  async function handleAdd() { await updateCounts(1); triggerSnow(); }
+  async function handleRemove() { await updateCounts(-1); triggerSnow(); }
+
+  async function updateCounts(change) {
+    try {
+      // Global
+      const global = await pb.collection(globalCollection).getOne(globalRecordId);
+      let newGlobal = global.count + change;
+      if (newGlobal < 0) newGlobal = 0;
+      let globalLogs = global.logs || [];
+      globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
+      await pb.collection(globalCollection).update(globalRecordId, {
+        count: newGlobal,
+        logs: globalLogs
+      });
+
+      // User
+      const user = await pb.collection(userCollection).getOne(userId);
+      let newUserCount = user.count + change;
+      if (newUserCount < 0) newUserCount = 0;
+      let userLogs = user.logs || [];
+      userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
+      await pb.collection(userCollection).update(userId, {
+        count: newUserCount,
+        logs: userLogs
+      });
+
+      await loadData();
+    } catch (err) {
+      console.error("Update failed:", err);
+      alert("Error updating counter. See console.");
+    }
+  }
+
+  function triggerSnow() {
+    for (let i = 0; i < 15; i++) {
+      const flake = document.createElement("div");
+      flake.className = "snowflake";
+      flake.textContent = "❄";
+      flake.style.left = Math.random() * 100 + "vw";
+      flake.style.fontSize = (10 + Math.random() * 20) + "px";
+      flake.style.opacity = Math.random();
+      flake.style.animationDuration = (2 + Math.random() * 3) + "s";
+      document.body.appendChild(flake);
+      setTimeout(() => flake.remove(), 4000);
+    }
+  }
+
+  async function viewLogs() {
+    if (!userId) return;
+    try {
+      const user = await pb.collection(userCollection).getOne(userId);
+      const logs = (user.logs || []).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+      const logDiv = document.getElementById("logList");
+      logDiv.innerHTML = "";
+      if (logs.length === 0) {
+        logDiv.textContent = "No log entries yet.";
+        return;
+      }
+      logs.forEach(entry => {
+        const dateStr = new Date(entry.timestamp).toLocaleString();
+        const typeStr = entry.type === "add" ? "Added 🎄" : "Removed ❌";
+        const div = document.createElement("div");
+        div.textContent = `${dateStr}: ${typeStr}`;
+        logDiv.appendChild(div);
+      });
+    } catch (err) {
+      console.error("Failed to fetch logs:", err);
+      alert("Could not load logs. See console.");
+    }
+  }
+
+  (async function start() {
+    await initUser();
+    await loadData();
+  })();
 </script>
 </body>
 </html>
