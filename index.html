@@ -93,6 +93,7 @@
 </style>
 </head>
 <body>
+    <audio id="sleighAudio" src="https://www.soundjay.com/holiday/sounds/sleigh-bells-1.mp3" preload="auto"></audio>
 <div class="container">
   <h1>🎄 Christmas Tree Counter 🎄</h1>
 
@@ -192,17 +193,24 @@
   }
 
   function triggerSnow() {
-    for (let i = 0; i < 15; i++) {
-      const flake = document.createElement("div");
-      flake.className = "snowflake";
-      flake.textContent = "❄";
-      flake.style.left = Math.random() * 100 + "vw";
-      flake.style.fontSize = (10 + Math.random() * 20) + "px";
-      flake.style.opacity = Math.random();
-      flake.style.animationDuration = (2 + Math.random() * 3) + "s";
-      document.body.appendChild(flake);
-      setTimeout(() => flake.remove(), 4000);
-    }
+  // Play sleighbell
+  const audio = document.getElementById("sleighAudio");
+  audio.currentTime = 0; // restart if already playing
+  audio.play();
+
+  // Snowflakes
+  for (let i = 0; i < 15; i++) {
+    const flake = document.createElement("div");
+    flake.className = "snowflake";
+    flake.textContent = "❄";
+    flake.style.left = Math.random() * 100 + "vw";
+    flake.style.fontSize = (10 + Math.random() * 20) + "px";
+    flake.style.opacity = Math.random();
+    flake.style.animationDuration = (2 + Math.random() * 3) + "s";
+    document.body.appendChild(flake);
+    setTimeout(() => flake.remove(), 4000);
+  }
+}
   }
 
   async function viewLogs() {
