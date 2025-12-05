@@ -17,22 +17,12 @@
         justify-content: center;
         padding: 20px;
         color: white;
-        overflow-x: hidden;
     }
-
-    .container {
-        width: 100%;
-        max-width: 420px;
-        text-align: center;
-        position: relative;
-    }
-
+    .container { width: 100%; max-width: 420px; text-align: center; }
     h1 {
-        font-size: 2.4rem;
-        margin-bottom: 10px;
+        font-size: 2.4rem; margin-bottom: 10px;
         text-shadow: 0 3px 4px rgba(0,0,0,0.3);
     }
-
     .card {
         background: rgba(255,255,255,0.15);
         border: 2px solid rgba(255,255,255,0.3);
@@ -40,57 +30,25 @@
         border-radius: 20px;
         backdrop-filter: blur(12px);
         box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+        margin-bottom: 20px;
     }
-
-    #count {
-        font-size: 5rem;
-        font-weight: 800;
-        margin: 20px 0;
-        color: #fcd34d;
-        text-shadow: 0 4px 8px rgba(0,0,0,0.4);
-    }
-
+    #totalCount { font-size: 4rem; font-weight: 800; color: #fcd34d; }
+    #userCount { font-size: 2.5rem; font-weight: 700; color: #a3e635; }
     button {
-        width: 100%;
-        padding: 18px;
-        background: #16a34a;
-        color: white;
-        font-size: 1.5rem;
-        border: none;
-        border-radius: 14px;
-        font-weight: 700;
-        cursor: pointer;
+        width: 100%; padding: 18px;
+        background: #16a34a; color: white;
+        font-size: 1.5rem; border: none;
+        border-radius: 14px; font-weight: 700;
+        cursor: pointer; margin-top: 20px;
+    }
+    button:hover { background: #15803d; }
+    #leaderboard {
         margin-top: 20px;
-        transition: transform 0.1s ease, background 0.2s;
-    }
-
-    button:hover {
-        background: #15803d;
-    }
-
-    button:active {
-        transform: scale(0.95);
-        background: #166534;
-    }
-
-    .footer {
-        margin-top: 24px;
-        font-size: 0.95rem;
-        opacity: 0.9;
-    }
-
-    /* ❄ Falling Snow Animation */
-    .snowflake {
-        position: fixed;
-        top: -10px;
-        color: white;
+        text-align: left;
+        background: rgba(255,255,255,0.1);
+        padding: 15px;
+        border-radius: 12px;
         font-size: 1.2rem;
-        opacity: 0.9;
-        animation: fall linear infinite;
-    }
-
-    @keyframes fall {
-        to { transform: translateY(110vh); }
     }
 </style>
 </head>
@@ -98,65 +56,119 @@
 <body>
 <div class="container">
 
-    <h2>🎄 Christmas Tree Counter 🎄</h2>
+    <h1>🎄 Christmas Tree Counter</h1>
 
     <div class="card">
-        <div id="count">0</div>
-        <button onclick="increment()">🎁 Add Tree</button>
+        <div>Total Trees</div>
+        <div id="totalCount">0</div>
     </div>
 
-    <div class="footer">
-        Merry Christmas! 🎅🌟
+    <div class="card">
+        <div>Your Trees</div>
+        <div id="userCount">0</div>
+        <button onclick="addTree()">🎁 Add Tree</button>
+    </div>
+
+    <div id="leaderboard" class="card">
+        <strong>Leaderboard</strong>
+        <div id="usersList">Loading...</div>
     </div>
 
 </div>
 
 <script>
-    /* --- PocketBase setup --- */
     const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
-    const recordId = "qj2f53koqvpy72i"; 
-    const collection = "tree_count";
 
-    async function loadCount() {
-        try {
-            const record = await pb.collection(collection).getOne(recordId);
-            document.getElementById("count").textContent = record.count;
-        } catch (err) {
-            console.error("Failed to load:", err);
+    const globalRecordId = "qj2f53koqvpy72i"; 
+    const globalCollection = "tree_count";
+
+    const userCollection = "users";
+    let userId = null;
+    let userName = null;
+
+    // -------------------------------
+    // STEP 1 — Ask for name
+    // -------------------------------
+    async function initUser() {
+        userName = localStorage.getItem("treeUserName");
+
+        if (!userName) {
+            userName = prompt("Enter your name:");
+            if (!userName) return;
+
+            localStorage.setItem("treeUserName", userName);
+
+            // Try to create a user in PocketBase
+            try {
+                const newUser = await pb.collection(userCollection).create({
+                    name: userName,
+                    count: 0
+                });
+                userId = newUser.id;
+            } catch (err) {
+                // User already exists → look them up
+                const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
+                userId = existing.id;
+            }
+        } else {
+            const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
+            userId = existing.id;
         }
     }
 
-    async function increment() {
+    // -------------------------------
+    // Load global + user data
+    // -------------------------------
+    async function loadData() {
+        // Global count
+        const global = await pb.collection(globalCollection).getOne(globalRecordId);
+        document.getElementById("totalCount").textContent = global.count;
+
+        // User count
+        const userRecord = await pb.collection(userCollection).getOne(userId);
+        document.getElementById("userCount").textContent = userRecord.count;
+
+        // Leaderboard
+        const allUsers = await pb.collection(userCollection).getFullList({
+            sort: "-count"
+        });
+
+        const listHTML = allUsers
+            .map(u => `<div>${u.name}: ${u.count}</div>`)
+            .join("");
+
+        document.getElementById("usersList").innerHTML = listHTML;
+    }
+
+    // -------------------------------
+    // Add tree (update global + user)
+    // -------------------------------
+    async function addTree() {
         try {
-            const current = await pb.collection(collection).getOne(recordId);
-            const updated = await pb.collection(collection).update(recordId, {
-                count: current.count + 1
+            // Update global count
+            const global = await pb.collection(globalCollection).getOne(globalRecordId);
+            await pb.collection(globalCollection).update(globalRecordId, {
+                count: global.count + 1
             });
-            document.getElementById("count").textContent = updated.count;
+
+            // Update user count
+            const userRecord = await pb.collection(userCollection).getOne(userId);
+            await pb.collection(userCollection).update(userId, {
+                count: userRecord.count + 1
+            });
+
+            loadData();
         } catch (err) {
-            alert("Error updating the counter.");
+            alert("Error updating counter.");
             console.error(err);
         }
     }
 
-    loadCount();
-
-
-    /* --- Falling Snow Generator --- */
-    function createSnowflake() {
-        const snow = document.createElement("div");
-        snow.classList.add("snowflake");
-        snow.textContent = "❄";
-
-        snow.style.left = Math.random() * 100 + "vw";
-        snow.style.animationDuration = (4 + Math.random() * 6) + "s";
-        snow.style.opacity = Math.random();
-
-        document.body.appendChild(snow);
-
-        setTimeout(() => snow.remove(), 10000);
-    }
-    setInterval(createSnowflake, 200);
+    // Initialize the whole app
+    (async function start() {
+        await initUser();
+        await loadData();
+    })();
 </script>
 
 </body>
