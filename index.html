@@ -64,14 +64,14 @@
 <script>
     const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
 
-    const globalRecordId = "qj2f53koqvpy72i";
+    const globalRecordId = "qj2f53koqvpy72i"; // global tree_count record
     const globalCollection = "tree_count";
-
     const userCollection = "users";
+
     let userId = null;
     let userName = null;
 
-    // Ask for name
+    // --- Step 1: Ask for name ---
     async function initUser() {
         userName = localStorage.getItem("treeUserName");
 
@@ -83,8 +83,7 @@
             try {
                 const newUser = await pb.collection(userCollection).create({
                     name: userName,
-                    count: 0,
-                    logs: []
+                    count: 0
                 });
                 userId = newUser.id;
             } catch (err) {
@@ -97,7 +96,7 @@
         }
     }
 
-    // Load global + user count
+    // --- Load counts ---
     async function loadData() {
         const global = await pb.collection(globalCollection).getOne(globalRecordId);
         document.getElementById("totalCount").textContent = global.count;
@@ -106,38 +105,41 @@
         document.getElementById("userCount").textContent = userRecord.count;
     }
 
-    // Add tree
+    // --- Add tree ---
     async function addTree() {
-        await updateCount(1);
+        await updateCounts(1);
     }
 
-    // Remove tree
+    // --- Remove tree ---
     async function removeTree() {
-        await updateCount(-1);
+        await updateCounts(-1);
     }
 
-    // Update counts and log
-    async function updateCount(change) {
+    // --- Update counts and append timestamped log ---
+    async function updateCounts(change) {
         try {
-            // Global count only allows positive increments
+            // --- Global count only increases ---
             if (change > 0) {
                 const global = await pb.collection(globalCollection).getOne(globalRecordId);
+                let logs = global.logs || [];
+                logs.push({ type: "add", timestamp: new Date().toISOString() });
+
                 await pb.collection(globalCollection).update(globalRecordId, {
-                    count: global.count + change
+                    count: global.count + 1,
+                    logs: logs
                 });
             }
 
-            // Update user count
+            // --- User count ---
             const userRecord = await pb.collection(userCollection).getOne(userId);
             let newCount = Math.max(0, userRecord.count + change);
 
-            // Append log
-            let logs = userRecord.logs || [];
-            logs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
+            let userLogs = userRecord.logs || [];
+            userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
 
             await pb.collection(userCollection).update(userId, {
                 count: newCount,
-                logs: logs
+                logs: userLogs
             });
 
             loadData();
