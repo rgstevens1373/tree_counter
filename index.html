@@ -8,26 +8,30 @@
 <script src="https://unpkg.com/pocketbase@latest/dist/pocketbase.umd.js"></script>
 
 <style>
-  html, body {
+  * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    overflow-x: hidden; /* prevent horizontal scroll */
+  }
+  html, body {
+    width: 100%;
+    overflow-x: hidden !important; /* prevent horizontal scroll */
     min-height: 100vh;
   }
   body {
     display: flex;
-    justify-content: center; /* horizontally center */
-    align-items: flex-start; /* content at top */
+    justify-content: center; /* center horizontally */
+    align-items: flex-start; /* start at top */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
     background: linear-gradient(#b91c1c, #7f1d1d);
     color: white;
-    padding: 10px;
+    padding: 0;
   }
   .container {
     width: 100%;
-    max-width: 360px;  /* safe for small iPhones */
+    max-width: 360px;  /* safe for iPhone */
+    margin: 0 auto;
     padding: 0 10px;
-    box-sizing: border-box;
     text-align: center;
   }
   h1 {
@@ -38,11 +42,11 @@
   .card {
     width: 100%;
     margin: 10px 0;
-    padding: 18px;
-    border-radius: 18px;
+    padding: 16px;
+    border-radius: 16px;
     background: rgba(255,255,255,0.15);
     border: 2px solid rgba(255,255,255,0.3);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(10px);
     box-shadow: 0 4px 15px rgba(0,0,0,0.25);
   }
   #totalCount {
@@ -57,15 +61,15 @@
   }
   button {
     width: 100%;
-    padding: 18px;
+    padding: 16px;
     background: #16a34a;
     color: white;
     font-size: 1.5rem;
     border: none;
-    border-radius: 16px;
+    border-radius: 14px;
     font-weight: 700;
     cursor: pointer;
-    margin-top: 12px;
+    margin-top: 10px;
     transition: transform 0.1s ease, background 0.2s ease;
   }
   button:hover { background: #15803d; }
@@ -144,11 +148,15 @@
   }
 
   async function loadData() {
-    const global = await pb.collection(globalCollection).getOne(globalRecordId);
-    document.getElementById("totalCount").textContent = global.count;
-    if (userId) {
-      const user = await pb.collection(userCollection).getOne(userId);
-      document.getElementById("userCount").textContent = user.count;
+    try {
+      const global = await pb.collection(globalCollection).getOne(globalRecordId);
+      document.getElementById("totalCount").textContent = global.count;
+      if (userId) {
+        const user = await pb.collection(userCollection).getOne(userId);
+        document.getElementById("userCount").textContent = user.count;
+      }
+    } catch (err) {
+      console.error("Load data failed:", err);
     }
   }
 
@@ -188,10 +196,10 @@
       const flake = document.createElement("div");
       flake.className = "snowflake";
       flake.textContent = "❄";
-      flake.style.left = Math.random() * 95 + "vw"; // keep inside viewport
+      flake.style.left = Math.random() * 95 + "vw"; // stay within viewport
       flake.style.fontSize = (8 + Math.random() * 10) + "px";
       flake.style.opacity = 0.6 + Math.random() * 0.4;
-      flake.style.animationDuration = (5 + Math.random() * 3) + "s";
+      flake.style.animation = `fall ${5 + Math.random() * 3}s linear`;
       document.body.appendChild(flake);
       setTimeout(() => flake.remove(), 6000);
     }
@@ -212,4 +220,16 @@
         div.textContent = `${dateStr}: ${typeStr}`;
         logDiv.appendChild(div);
       });
-    } catch (
+    } catch (err) {
+      console.error("Failed to fetch logs:", err);
+      alert("Could not load logs. See console.");
+    }
+  }
+
+  (async function start() {
+    await initUser();
+    await loadData();
+  })();
+</script>
+</body>
+</html>
