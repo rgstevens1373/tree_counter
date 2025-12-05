@@ -74,27 +74,29 @@ let userName = null;
 
 // --- Step 1: Prompt for name and create user if needed ---
 async function initUser() {
-  userName = localStorage.getItem("treeUserName");
+    userName = localStorage.getItem("treeUserName");
 
-  if (!userName) {
-    userName = prompt("Enter your name:");
-    if (!userName) return;
-    localStorage.setItem("treeUserName", userName);
-  }
+    if (!userName) {
+        userName = prompt("Enter your name:");
+        if (!userName) return;
+        localStorage.setItem("treeUserName", userName);
+    }
 
-  // Try to create a new user, or get existing
-  try {
-    const newUser = await pb.collection(userCollection).create({
-      name: userName,
-      count: 0,
-      logs: []
-    });
-    userId = newUser.id;
-  } catch (err) {
-    // If creation failed (already exists), fetch existing
-    const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
-    userId = existing.id;
-  }
+    // Try to fetch existing user
+    try {
+        const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
+        userId = existing.id;
+    } catch (err) {
+        // If not found, create a new user
+        const newUser = await pb.collection(userCollection).create({
+            name: userName,
+            count: 0,
+            logs: []
+        });
+        userId = newUser.id;
+    }
+
+    console.log("userId:", userId);
 }
 
 // --- Load global and user counts ---
