@@ -93,9 +93,10 @@
 </style>
 </head>
 <body>
-    <audio id="sleighAudio" src="https://www.soundjay.com/holiday/sounds/sleigh-bells-1.mp3" preload="auto"></audio>
 <div class="container">
   <h1>🎄 Christmas Tree Counter 🎄</h1>
+
+  <audio id="sleighAudio" src="https://www.orangefreesounds.com/wp-content/uploads/2016/12/Sleigh-bells-sound.mp3" preload="auto"></audio>
 
   <div class="card">
     <div>Total Trees</div>
@@ -118,13 +119,12 @@
 <script>
   const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
   const globalCollection = "tree_count";
-  const globalRecordId = "qj2f53koqvpy72i";  // Replace with your record ID
+  const globalRecordId = "qj2f53koqvpy72i"; // replace with your record ID
   const userCollection = "users";
 
   let userId = null;
   let userName = null;
 
-  // Prompt for user name and create/fetch record
   async function initUser() {
     userName = localStorage.getItem("treeUserName");
     if (!userName) {
@@ -193,24 +193,24 @@
   }
 
   function triggerSnow() {
-  // Play sleighbell
-  const audio = document.getElementById("sleighAudio");
-  audio.currentTime = 0; // restart if already playing
-  audio.play();
+    // Play sleighbell for 3 seconds
+    const audio = document.getElementById("sleighAudio");
+    audio.currentTime = 0;
+    audio.play();
+    setTimeout(() => audio.pause(), 3000);
 
-  // Snowflakes
-  for (let i = 0; i < 15; i++) {
-    const flake = document.createElement("div");
-    flake.className = "snowflake";
-    flake.textContent = "❄";
-    flake.style.left = Math.random() * 100 + "vw";
-    flake.style.fontSize = (10 + Math.random() * 20) + "px";
-    flake.style.opacity = Math.random();
-    flake.style.animationDuration = (2 + Math.random() * 3) + "s";
-    document.body.appendChild(flake);
-    setTimeout(() => flake.remove(), 4000);
-  }
-}
+    // Snow animation
+    for (let i = 0; i < 15; i++) {
+      const flake = document.createElement("div");
+      flake.className = "snowflake";
+      flake.textContent = "❄";
+      flake.style.left = Math.random() * 100 + "vw";
+      flake.style.fontSize = (10 + Math.random() * 20) + "px";
+      flake.style.opacity = Math.random();
+      flake.style.animationDuration = (2 + Math.random() * 3) + "s";
+      document.body.appendChild(flake);
+      setTimeout(() => flake.remove(), 4000);
+    }
   }
 
   async function viewLogs() {
