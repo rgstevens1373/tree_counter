@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🎄 Christmas Tree Counter</title>
+
+<script src="https://unpkg.com/pocketbase@latest/dist/pocketbase.umd.js"></script>
+
+<style>
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+        background: linear-gradient(#b91c1c, #7f1d1d);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+        color: white;
+        overflow-x: hidden;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 420px;
+        text-align: center;
+        position: relative;
+    }
+
+    h1 {
+        font-size: 2.4rem;
+        margin-bottom: 10px;
+        text-shadow: 0 3px 4px rgba(0,0,0,0.3);
+    }
+
+    .card {
+        background: rgba(255,255,255,0.15);
+        border: 2px solid rgba(255,255,255,0.3);
+        padding: 30px;
+        border-radius: 20px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+    }
+
+    #count {
+        font-size: 5rem;
+        font-weight: 800;
+        margin: 20px 0;
+        color: #fcd34d;
+        text-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    }
+
+    button {
+        width: 100%;
+        padding: 18px;
+        background: #16a34a;
+        color: white;
+        font-size: 1.5rem;
+        border: none;
+        border-radius: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: transform 0.1s ease, background 0.2s;
+    }
+
+    button:hover {
+        background: #15803d;
+    }
+
+    button:active {
+        transform: scale(0.95);
+        background: #166534;
+    }
+
+    .footer {
+        margin-top: 24px;
+        font-size: 0.95rem;
+        opacity: 0.9;
+    }
+
+    /* ❄ Falling Snow Animation */
+    .snowflake {
+        position: fixed;
+        top: -10px;
+        color: white;
+        font-size: 1.2rem;
+        opacity: 0.9;
+        animation: fall linear infinite;
+    }
+
+    @keyframes fall {
+        to { transform: translateY(110vh); }
+    }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>🎄 Christmas Tree Counter 🎄</h1>
+
+    <div class="card">
+        <div id="count">0</div>
+        <button onclick="increment()">🎁 Add Tree</button>
+    </div>
+
+    <div class="footer">
+        Merry Christmas! 🎅🌟
+    </div>
+
+</div>
+
+<script>
+    /* --- PocketBase setup --- */
+    const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
+    const recordId = "qj2f53koqvpy72i"; 
+    const collection = "tree_count";
+
+    async function loadCount() {
+        try {
+            const record = await pb.collection(collection).getOne(recordId);
+            document.getElementById("count").textContent = record.count;
+        } catch (err) {
+            console.error("Failed to load:", err);
+        }
+    }
+
+    async function increment() {
+        try {
+            const current = await pb.collection(collection).getOne(recordId);
+            const updated = await pb.collection(collection).update(recordId, {
+                count: current.count + 1
+            });
+            document.getElementById("count").textContent = updated.count;
+        } catch (err) {
+            alert("Error updating the counter.");
+            console.error(err);
+        }
+    }
+
+    loadCount();
+
+
+    /* --- Falling Snow Generator --- */
+    function createSnowflake() {
+        const snow = document.createElement("div");
+        snow.classList.add("snowflake");
+        snow.textContent = "❄";
+
+        snow.style.left = Math.random() * 100 + "vw";
+        snow.style.animationDuration = (4 + Math.random() * 6) + "s";
+        snow.style.opacity = Math.random();
+
+        document.body.appendChild(snow);
+
+        setTimeout(() => snow.remove(), 10000);
+    }
+    setInterval(createSnowflake, 200);
+</script>
+
+</body>
+</html>
