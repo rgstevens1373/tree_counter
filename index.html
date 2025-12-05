@@ -8,35 +8,42 @@
 <script src="https://unpkg.com/pocketbase@latest/dist/pocketbase.umd.js"></script>
 
 <style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;  /* prevent horizontal scrolling */
+  }
   body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-  background: linear-gradient(#b91c1c, #7f1d1d);
-  color: white;
-  display: flex;
-  justify-content: center;
-  padding: 10px;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-.container {
-  width: 95%;         /* fit nicely on iPhone screens */
-  max-width: 360px;   /* slightly narrower for small devices */
-  text-align: center;
-}
-
-.card {
-  background: rgba(255,255,255,0.15);
-  border: 2px solid rgba(255,255,255,0.3);
-  padding: 18px;       /* slightly reduced padding */
-  border-radius: 18px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.25);
-  margin-bottom: 15px;
-  position: relative;
-  width: 100%;          /* card fills container width */
-}
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    background: linear-gradient(#b91c1c, #7f1d1d);
+    color: white;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    min-height: 100vh;
+  }
+  .container {
+    width: 100%;
+    max-width: 360px; /* fits small iPhones */
+    padding: 0 10px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+  h1 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 3px rgba(0,0,0,0.3);
+  }
+  .card {
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    padding: 18px;
+    border-radius: 18px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    margin-bottom: 15px;
+    width: 100%;
+  }
   #totalCount {
     font-size: 3rem;
     font-weight: 800;
@@ -60,13 +67,8 @@
     margin-top: 12px;
     transition: transform 0.1s ease, background 0.2s ease;
   }
-  button:hover {
-    background: #15803d;
-  }
-  button:active {
-    transform: scale(0.96);
-    background: #166534;
-  }
+  button:hover { background: #15803d; }
+  button:active { transform: scale(0.96); background: #166534; }
   .snowflake {
     position: fixed;
     top: -10px;
@@ -76,7 +78,6 @@
     pointer-events: none;
     user-select: none;
     z-index: 9999;
-    animation: fall linear forwards;
   }
   @keyframes fall {
     to { transform: translateY(110vh); }
@@ -188,10 +189,10 @@
       const flake = document.createElement("div");
       flake.className = "snowflake";
       flake.textContent = "❄";
-      flake.style.left = Math.random() * 100 + "vw";
-      flake.style.fontSize = (8 + Math.random() * 10) + "px"; // slightly larger for visibility
+      flake.style.left = Math.random() * 95 + "vw"; // keep inside viewport
+      flake.style.fontSize = (8 + Math.random() * 10) + "px";
       flake.style.opacity = 0.6 + Math.random() * 0.4;
-      flake.style.animationDuration = (5 + Math.random() * 3) + "s"; // slower
+      flake.style.animationDuration = (5 + Math.random() * 3) + "s";
       document.body.appendChild(flake);
       setTimeout(() => flake.remove(), 6000);
     }
@@ -204,10 +205,7 @@
       const logs = (user.logs || []).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
       const logDiv = document.getElementById("logList");
       logDiv.innerHTML = "";
-      if (logs.length === 0) {
-        logDiv.textContent = "No log entries yet.";
-        return;
-      }
+      if (logs.length === 0) { logDiv.textContent = "No log entries yet."; return; }
       logs.forEach(entry => {
         const dateStr = new Date(entry.timestamp).toLocaleString();
         const typeStr = entry.type === "add" ? "Added 🎄" : "Removed ❌";
