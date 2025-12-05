@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>🎄 Christmas Tree Counter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>🎄 Tree Counter 🎄</title>
 
 <script src="https://unpkg.com/pocketbase@latest/dist/pocketbase.umd.js"></script>
 
@@ -15,37 +15,38 @@
     color: white;
     display: flex;
     justify-content: center;
-    padding: 20px;
+    padding: 10px;
     min-height: 100vh;
     overflow-x: hidden;
   }
   .container {
     width: 100%;
-    max-width: 420px;
+    max-width: 400px;
     text-align: center;
   }
   h1 {
-    font-size: 2.4rem;
+    font-size: 1.8rem;
     margin-bottom: 10px;
-    text-shadow: 0 3px 4px rgba(0,0,0,0.3);
+    text-shadow: 0 2px 3px rgba(0,0,0,0.3);
   }
   .card {
     background: rgba(255,255,255,0.15);
     border: 2px solid rgba(255,255,255,0.3);
-    padding: 30px;
+    padding: 20px;
     border-radius: 20px;
     backdrop-filter: blur(12px);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.25);
-    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    margin-bottom: 15px;
     position: relative;
+    width: 100%;
   }
   #totalCount {
-    font-size: 4rem;
+    font-size: 3rem;
     font-weight: 800;
     color: #fcd34d;
   }
   #userCount {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 700;
     color: #a3e635;
   }
@@ -56,25 +57,25 @@
     color: white;
     font-size: 1.5rem;
     border: none;
-    border-radius: 14px;
+    border-radius: 16px;
     font-weight: 700;
     cursor: pointer;
-    margin-top: 20px;
+    margin-top: 12px;
     transition: transform 0.1s ease, background 0.2s ease;
   }
   button:hover {
     background: #15803d;
   }
   button:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
     background: #166534;
   }
   .snowflake {
     position: fixed;
     top: -10px;
     color: white;
-    font-size: 1.2rem;
-    opacity: 0.9;
+    font-size: 10px;
+    opacity: 0.8;
     pointer-events: none;
     user-select: none;
     z-index: 9999;
@@ -86,15 +87,15 @@
   #logList {
     margin-top: 10px;
     text-align: left;
-    max-height: 200px;
+    max-height: 180px;
     overflow-y: auto;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>🎄 Christmas Tree Counter 🎄</h1>
+  <h1>🎄 Tree Counter 🎄</h1>
 
   <audio id="sleighAudio" src="https://www.orangefreesounds.com/wp-content/uploads/2016/12/Sleigh-bells-sound.mp3" preload="auto"></audio>
 
@@ -129,10 +130,7 @@
     userName = localStorage.getItem("treeUserName");
     if (!userName) {
       userName = prompt("Enter your name:");
-      if (!userName) {
-        alert("Name is required!");
-        return;
-      }
+      if (!userName) { alert("Name is required!"); return; }
       localStorage.setItem("treeUserName", userName);
     }
     try {
@@ -151,7 +149,6 @@
   async function loadData() {
     const global = await pb.collection(globalCollection).getOne(globalRecordId);
     document.getElementById("totalCount").textContent = global.count;
-
     if (userId) {
       const user = await pb.collection(userCollection).getOne(userId);
       document.getElementById("userCount").textContent = user.count;
@@ -163,27 +160,19 @@
 
   async function updateCounts(change) {
     try {
-      // Global
       const global = await pb.collection(globalCollection).getOne(globalRecordId);
       let newGlobal = global.count + change;
       if (newGlobal < 0) newGlobal = 0;
       let globalLogs = global.logs || [];
       globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-      await pb.collection(globalCollection).update(globalRecordId, {
-        count: newGlobal,
-        logs: globalLogs
-      });
+      await pb.collection(globalCollection).update(globalRecordId, { count: newGlobal, logs: globalLogs });
 
-      // User
       const user = await pb.collection(userCollection).getOne(userId);
       let newUserCount = user.count + change;
       if (newUserCount < 0) newUserCount = 0;
       let userLogs = user.logs || [];
       userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-      await pb.collection(userCollection).update(userId, {
-        count: newUserCount,
-        logs: userLogs
-      });
+      await pb.collection(userCollection).update(userId, { count: newUserCount, logs: userLogs });
 
       await loadData();
     } catch (err) {
@@ -193,23 +182,21 @@
   }
 
   function triggerSnow() {
-    // Play sleighbell for 3 seconds
     const audio = document.getElementById("sleighAudio");
     audio.currentTime = 0;
     audio.play();
     setTimeout(() => audio.pause(), 3000);
 
-    // Snow animation
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 10; i++) {
       const flake = document.createElement("div");
       flake.className = "snowflake";
       flake.textContent = "❄";
       flake.style.left = Math.random() * 100 + "vw";
-      flake.style.fontSize = (10 + Math.random() * 20) + "px";
-      flake.style.opacity = Math.random();
-      flake.style.animationDuration = (2 + Math.random() * 3) + "s";
+      flake.style.fontSize = (8 + Math.random() * 10) + "px"; // slightly larger for visibility
+      flake.style.opacity = 0.6 + Math.random() * 0.4;
+      flake.style.animationDuration = (5 + Math.random() * 3) + "s"; // slower
       document.body.appendChild(flake);
-      setTimeout(() => flake.remove(), 4000);
+      setTimeout(() => flake.remove(), 6000);
     }
   }
 
