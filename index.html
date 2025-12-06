@@ -1,235 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>🎄 Tree Counter 🎄</title>
-
-<script src="https://unpkg.com/pocketbase@latest/dist/pocketbase.umd.js"></script>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎄 Tree Counter</title>
 <style>
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  html, body {
-    width: 100%;
-    overflow-x: hidden !important; /* prevent horizontal scroll */
-    min-height: 100vh;
-  }
-  body {
-    display: flex;
-    justify-content: center; /* center horizontally */
-    align-items: flex-start; /* start at top */
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-    background: linear-gradient(#b91c1c, #7f1d1d);
-    color: white;
-    padding: 0;
-  }
-  .container {
-    width: 100%;
-    max-width: 360px;  /* safe for iPhone */
-    margin: 0 auto;
-    padding: 0 10px;
-    text-align: center;
-  }
-  h1 {
-    font-size: 1.8rem;
-    margin-bottom: 10px;
-    text-shadow: 0 2px 3px rgba(0,0,0,0.3);
-  }
-  .card {
-    width: 100%;
-    margin: 10px 0;
-    padding: 16px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.15);
-    border: 2px solid rgba(255,255,255,0.3);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
-  }
-  #totalCount {
-    font-size: 3rem;
-    font-weight: 800;
-    color: #fcd34d;
-  }
-  #userCount {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #a3e635;
-  }
-  button {
-    width: 100%;
-    padding: 16px;
-    background: #16a34a;
-    color: white;
-    font-size: 1.5rem;
-    border: none;
-    border-radius: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: transform 0.1s ease, background 0.2s ease;
-  }
-  button:hover { background: #15803d; }
-  button:active { transform: scale(0.96); background: #166534; }
-  .snowflake {
-    position: fixed;
-    top: -10px;
-    color: white;
-    font-size: 10px;
-    opacity: 0.8;
-    pointer-events: none;
-    user-select: none;
-    z-index: 9999;
-  }
-  @keyframes fall { to { transform: translateY(110vh); } }
-  #logList {
-    margin-top: 10px;
-    text-align: left;
-    max-height: 180px;
-    overflow-y: auto;
-    font-size: 0.85rem;
-  }
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+        background: linear-gradient(#0055cc, #ffffff);
+        color: #fff;
+        text-align: center;
+        overflow-x: hidden;
+    }
+    h1 { font-size: 2rem; margin-top: 1rem; }
+    #counters { margin: 2rem 0; }
+    #counters div { font-size: 1.5rem; margin: 0.5rem 0; }
+    button {
+        font-size: 1.2rem;
+        padding: 0.8rem 1.2rem;
+        margin: 0.5rem;
+        border: none;
+        border-radius: 10px;
+        background: #ff0000;
+        color: #fff;
+        cursor: pointer;
+    }
+    button:active { background: #cc0000; }
+    canvas { position: fixed; top:0; left:0; pointer-events:none; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>🎄 Tree Counter 🎄</h1>
 
-  <audio id="sleighAudio" src="https://www.orangefreesounds.com/wp-content/uploads/2016/12/Sleigh-bells-sound.mp3" preload="auto"></audio>
+<h1>🎄 Tree Counter</h1>
 
-  <div class="card">
-    <div>Total Trees</div>
-    <div id="totalCount">0</div>
-  </div>
-
-  <div class="card">
-    <div>Your Trees</div>
-    <div id="userCount">0</div>
-    <button onclick="handleAdd()">🎁 Add Tree</button>
-    <button onclick="handleRemove()">❌ Remove Tree</button>
-  </div>
-
-  <div class="card">
-    <button onclick="viewLogs()">📜 View My Log</button>
-    <div id="logList"></div>
-  </div>
+<div id="counters">
+    <div id="yourCount">Your Trees: 0</div>
+    <div id="totalCount">Total Trees: 0</div>
 </div>
 
+<button id="addTreeBtn">Add Tree 🎄</button>
+<button id="removeTreeBtn">Remove Tree ❌</button>
+
+<audio id="sleighbells" src="https://assets.mixkit.co/sfx/preview/mixkit-bells-christmas-1077.mp3"></audio>
+
+<canvas id="snowCanvas"></canvas>
+
+<script src="https://unpkg.com/pocketbase/dist/pocketbase.min.js"></script>
 <script>
-  const pb = new PocketBase("https://tree-counter-backend-o0al.onrender.com");
-  const globalCollection = "tree_count";
-  const globalRecordId = "qj2f53koqvpy72i"; // replace with your record ID
-  const userCollection = "users";
+const pb = new PocketBase("https://tree-counter-backend.onrender.com");
 
-  let userId = null;
-  let userName = null;
+let currentUserId = localStorage.getItem("userId");
+let currentTreeCountId = localStorage.getItem("treeCountId");
+let yourCountEl = document.getElementById("yourCount");
+let totalCountEl = document.getElementById("totalCount");
 
-  async function initUser() {
-    userName = localStorage.getItem("treeUserName");
-    if (!userName) {
-      userName = prompt("Enter your name:");
-      if (!userName) { alert("Name is required!"); return; }
-      localStorage.setItem("treeUserName", userName);
-    }
+async function initUserFlow() {
+    if (currentUserId && currentTreeCountId) return;
+
+    let name = "";
+    while (!name) name = prompt("Welcome! What's your name?");
+    
+    // Check if user exists
+    let userRecord = null;
     try {
-      const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
-      userId = existing.id;
-    } catch {
-      const newUser = await pb.collection(userCollection).create({
-        name: userName,
-        count: 0,
-        logs: []
-      });
-      userId = newUser.id;
-    }
-  }
+        const res = await pb.collection("app_users").getList(1,1,{filter:`name="${name}"`});
+        if(res.items.length>0) userRecord=res.items[0];
+    } catch(e){console.error(e);}
 
-  async function loadData() {
+    if(!userRecord){
+        try { userRecord = await pb.collection("app_users").create({name}); }
+        catch(e){alert("Error creating user"); return;}
+    }
+
+    currentUserId = userRecord.id;
+    localStorage.setItem("userId", currentUserId);
+
+    // Check if tree_count exists
+    let treeRecord = null;
     try {
-      const global = await pb.collection(globalCollection).getOne(globalRecordId);
-      document.getElementById("totalCount").textContent = global.count;
-      if (userId) {
-        const user = await pb.collection(userCollection).getOne(userId);
-        document.getElementById("userCount").textContent = user.count;
-      }
-    } catch (err) {
-      console.error("Load data failed:", err);
+        const res = await pb.collection("tree_counts").getList(1,1,{filter:`user="${currentUserId}"`});
+        if(res.items.length>0) treeRecord=res.items[0];
+    } catch(e){console.error(e);}
+
+    if(!treeRecord){
+        try {
+            treeRecord = await pb.collection("tree_counts").create({user: currentUserId, count:0, logs:[]});
+        } catch(e){alert("Error creating counter"); return;}
     }
-  }
 
-  async function handleAdd() { await updateCounts(1); triggerSnow(); }
-  async function handleRemove() { await updateCounts(-1); triggerSnow(); }
+    currentTreeCountId = treeRecord.id;
+    localStorage.setItem("treeCountId", currentTreeCountId);
 
-  async function updateCounts(change) {
+    updateCounts();
+}
+
+async function updateCounts(){
     try {
-      const global = await pb.collection(globalCollection).getOne(globalRecordId);
-      let newGlobal = global.count + change;
-      if (newGlobal < 0) newGlobal = 0;
-      let globalLogs = global.logs || [];
-      globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-      await pb.collection(globalCollection).update(globalRecordId, { count: newGlobal, logs: globalLogs });
+        const totalRecords = await pb.collection("tree_counts").getFullList();
+        const yourRecord = await pb.collection("tree_counts").getOne(currentTreeCountId);
 
-      const user = await pb.collection(userCollection).getOne(userId);
-      let newUserCount = user.count + change;
-      if (newUserCount < 0) newUserCount = 0;
-      let userLogs = user.logs || [];
-      userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-      await pb.collection(userCollection).update(userId, { count: newUserCount, logs: userLogs });
+        let total = totalRecords.reduce((sum,r)=>sum+r.count,0);
+        totalCountEl.innerText = `Total Trees: ${total}`;
+        yourCountEl.innerText = `Your Trees: ${yourRecord.count}`;
+    } catch(e){console.error(e);}
+}
 
-      await loadData();
-    } catch (err) {
-      console.error("Update failed:", err);
-      alert("Error updating counter. See console.");
+async function addTree(){
+    try {
+        const record = await pb.collection("tree_counts").getOne(currentTreeCountId);
+        record.count +=1;
+        record.logs.push({type:"add",timestamp:new Date().toISOString()});
+        await pb.collection("tree_counts").update(currentTreeCountId,record);
+        playSleigh();
+        snowFall();
+        updateCounts();
+    } catch(e){console.error(e); alert("Error updating counter. See console.");}
+}
+
+async function removeTree(){
+    try {
+        const record = await pb.collection("tree_counts").getOne(currentTreeCountId);
+        if(record.count>0){
+            record.count -=1;
+            record.logs.push({type:"remove",timestamp:new Date().toISOString()});
+            await pb.collection("tree_counts").update(currentTreeCountId,record);
+            updateCounts();
+        }
+    } catch(e){console.error(e); alert("Error updating counter. See console.");}
+}
+
+// Snow animation
+function snowFall(){
+    const canvas = document.getElementById("snowCanvas");
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+    const ctx=canvas.getContext("2d");
+    let flakes = [];
+    for(let i=0;i<100;i++){
+        flakes.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*4+1, d:Math.random()*1});
     }
-  }
+    let t=0;
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle="white";
+        ctx.beginPath();
+        for(let i=0;i<flakes.length;i++){
+            let f=flakes[i];
+            ctx.moveTo(f.x,f.y);
+            ctx.arc(f.x,f.y,f.r,0,Math.PI*2,true);
+        }
+        ctx.fill();
+        t+=0.01;
+        for(let i=0;i<flakes.length;i++){
+            let f=flakes[i];
+            f.y+=Math.cos(t+f.d)+1+f.r/2;
+            f.x+=Math.sin(t)*2;
+            if(f.y>canvas.height){f.y=0; f.x=Math.random()*canvas.width;}
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
+}
 
-  function triggerSnow() {
-    const audio = document.getElementById("sleighAudio");
-    audio.currentTime = 0;
+// Sleighbells
+function playSleigh(){
+    const audio = document.getElementById("sleighbells");
+    audio.currentTime=0;
     audio.play();
-    setTimeout(() => audio.pause(), 3000);
+    setTimeout(()=>audio.pause(),3000);
+}
 
-    for (let i = 0; i < 10; i++) {
-      const flake = document.createElement("div");
-      flake.className = "snowflake";
-      flake.textContent = "❄";
-      flake.style.left = Math.random() * 95 + "vw"; // stay within viewport
-      flake.style.fontSize = (8 + Math.random() * 10) + "px";
-      flake.style.opacity = 0.6 + Math.random() * 0.4;
-      flake.style.animation = `fall ${5 + Math.random() * 3}s linear`;
-      document.body.appendChild(flake);
-      setTimeout(() => flake.remove(), 6000);
-    }
-  }
+document.getElementById("addTreeBtn").onclick=addTree;
+document.getElementById("removeTreeBtn").onclick=removeTree;
 
-  async function viewLogs() {
-    if (!userId) return;
-    try {
-      const user = await pb.collection(userCollection).getOne(userId);
-      const logs = (user.logs || []).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-      const logDiv = document.getElementById("logList");
-      logDiv.innerHTML = "";
-      if (logs.length === 0) { logDiv.textContent = "No log entries yet."; return; }
-      logs.forEach(entry => {
-        const dateStr = new Date(entry.timestamp).toLocaleString();
-        const typeStr = entry.type === "add" ? "Added 🎄" : "Removed ❌";
-        const div = document.createElement("div");
-        div.textContent = `${dateStr}: ${typeStr}`;
-        logDiv.appendChild(div);
-      });
-    } catch (err) {
-      console.error("Failed to fetch logs:", err);
-      alert("Could not load logs. See console.");
-    }
-  }
-
-  (async function start() {
-    await initUser();
-    await loadData();
-  })();
+initUserFlow();
 </script>
+
 </body>
 </html>
