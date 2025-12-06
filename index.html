@@ -1,78 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Tree Counter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 50px;
-    }
-    h1 {
-      color: #2d7a2d;
-    }
-    #counter {
-      font-size: 48px;
-      margin: 20px 0;
-      color: #1a5a1a;
-    }
-    button {
-      font-size: 24px;
-      padding: 10px 20px;
-      margin: 5px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      background-color: #4CAF50;
-      color: white;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tree Counter 🎄</title>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Helvetica Neue", sans-serif;
+    background: linear-gradient(to bottom, #0044cc, #ffffff);
+    color: #fff;
+    text-align: center;
+    overflow-x: hidden;
+}
+h1 {
+    font-size: 1.8rem;
+    margin-top: 1rem;
+}
+#counters {
+    margin: 1.5rem 0;
+}
+#counters div {
+    font-size: 1.4rem;
+    margin: 0.3rem 0;
+}
+button {
+    font-size: 1.2rem;
+    padding: 0.8rem 1.2rem;
+    margin: 0.5rem;
+    border: none;
+    border-radius: 10px;
+    background: #ff0000;
+    color: #fff;
+    cursor: pointer;
+}
+button:active { background: #cc0000; }
+canvas { position: fixed; top:0; left:0; pointer-events:none; }
+</style>
 </head>
 <body>
 
-  <h1>Tree Counter</h1>
-  <div id="counter">0</div>
-  <button id="increment">+</button>
-  <button id="decrement">-</button>
+<h1>🎄 Tree Counter</h1>
 
-  <script>
-    let count = 0;
-    const counterEl = document.getElementById('counter');
+<div id="counters">
+    <div id="yourCount">Your Trees: 0</div>
+    <div id="totalCount">Total Trees: 0</div>
+</div>
 
-    const backendUrl = "https://tree-counter-backend.onrender.com"; // <-- Replace with your Render backend URL if needed
+<button id="addTreeBtn">Add Tree 🎄</button>
+<button id="removeTreeBtn">Remove Tree ❌</button>
 
-    function updateCounterDisplay() {
-      counterEl.textContent = count;
+<audio id="sleighbells" src="https://assets.mixkit.co/sfx/preview/mixkit-bells-christmas-1077.mp3"></audio>
+
+<canvas id="snowCanvas"></canvas>
+
+<script src="https://unpkg.com/pocketbase/dist/pocketbase.min.js"></script>
+<script>
+const pb = new PocketBase("https://tree-counter-backend.onrender.com");
+
+let currentUserId = localStorage.getItem("userId");
+let currentTreeCountId = localStorage.getItem("treeCountId");
+
+const yourCountEl = document.getElementById("yourCount");
+const totalCountEl = document.getElementById("totalCount");
+
+// Initialize user flow
+async function initUserFlow() {
+    if(currentUserId && currentTreeCountId) return;
+
+    let name = "";
+    while(!name) name = prompt("Welcome! What's your name?");
+    
+    let userRecord = null;
+    try {
+        const res = await pb.collection("app_users").getList(1,1,{filter:`name="${name}"`});
+        if(res.items.length>0) userRecord=res.items[0];
+    } catch(e){ console.error(e); }
+
+    if(!userRecord){
+        try { userRecord = await pb.collection("app_users").create({name}); }
+        catch(e){ alert("Error creating user"); return; }
     }
 
-    document.getElementById('increment').addEventListener('click', () => {
-      count++;
-      updateCounterDisplay();
+    currentUserId = userRecord.id;
+    localStorage.setItem("userId", currentUserId);
 
-      // Optional: send to backend
-      // fetch(`${backendUrl}/increment`, { method: 'POST' });
-    });
+    let treeRecord = null;
+    try {
+        const res = await pb.collection("tree_counts").getList(1,1,{filter:`user="${currentUserId}"`});
+        if(res.items.length>0) treeRecord=res.items[0];
+    } catch(e){ console.error(e); }
 
-    document.getElementById('decrement').addEventListener('click', () => {
-      count--;
-      updateCounterDisplay();
+    if(!treeRecord){
+        try { treeRecord = await pb.collection("tree_counts").create({user: currentUserId,count:0,logs:[]}); }
+        catch(e){ alert("Error creating counter"); return; }
+    }
 
-      // Optional: send to backend
-      // fetch(`${backendUrl}/decrement`, { method: 'POST' });
-    });
+    currentTreeCountId = treeRecord.id;
+    localStorage.setItem("treeCountId", currentTreeCountId);
 
-    // Optional: fetch initial count from backend on load
-    // fetch(`${backendUrl}/current`)
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     count = data.count;
-    //     updateCounterDisplay();
-    //   });
-  </script>
+    updateCounts();
+}
 
+// Update counts
+async function updateCounts(){
+    try {
+        const totalRecords = await pb.collection("tree_counts").getFullList();
+        const yourRecord = await pb.collection("tree_counts").getOne(currentTreeCountId);
+        const total = totalRecords.reduce((sum,r)=>sum+r.count,0);
+        totalCountEl.innerText = `Total Trees: ${total}`;
+        yourCountEl.innerText = `Your Trees: ${yourRecord.count}`;
+    } catch(e){ console.error(e); }
+}
+
+// Add tree
+async function addTree(){
+    try {
+        const record = await pb.collection("tree_counts").getOne(currentTreeCountId);
+        record.count += 1;
+        record.logs.push({type:"add", timestamp:new Date().toISOString()});
+        await pb.collection("tree_counts").update(currentTreeCountId,record);
+        playSleigh();
+        snowFall();
+        updateCounts();
+    } catch(e){ console.error(e); alert("Error updating counter."); }
+}
+
+// Remove tree
+async function removeTree(){
+    try {
+        const record = await pb.collection("tree_counts").getOne(currentTreeCountId);
+        if(record.count>0){
+            record.count -=1;
+            record.logs.push({type:"remove", timestamp:new Date().toISOString()});
+            await pb.collection("tree_counts").update(currentTreeCountId,record);
+            updateCounts();
+        }
+    } catch(e){ console.error(e); alert("Error updating counter."); }
+}
+
+// Snow animation (only triggered on addTree)
+function snowFall(){
+    const canvas = document.getElementById("snowCanvas");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext("2d");
+    const flakes = [];
+    for(let i=0;i<100;i++){ flakes.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*4+1,d:Math.random()*1}); }
+    let t=0;
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle="white";
+        ctx.beginPath();
+        for(let i=0;i<flakes.length;i++){
+            let f=flakes[i];
+            ctx.moveTo(f.x,f.y);
+            ctx.arc(f.x,f.y,f.r,0,Math.PI*2,true);
+        }
+        ctx.fill();
+        t+=0.01;
+        for(let i=0;i<flakes.length;i++){
+            let f=flakes[i];
+            f.y+=Math.cos(t+f.d)+1+f.r/2;
+            f.x+=Math.sin(t)*2;
+            if(f.y>canvas.height){ f.y=0; f.x=Math.random()*canvas.width; }
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
+}
+
+// Sleighbells (play 3 seconds)
+function playSleigh(){
+    const audio = document.getElementById("sleighbells");
+    audio.currentTime=0;
+    audio.play();
+    setTimeout(()=>audio.pause(),3000);
+}
+
+document.getElementById("addTreeBtn").onclick=addTree;
+document.getElementById("removeTreeBtn").onclick=removeTree;
+
+// Initialize
+initUserFlow();
+</script>
 </body>
 </html>
