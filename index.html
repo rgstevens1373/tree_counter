@@ -16,25 +16,19 @@
     background: linear-gradient(#b91c1c, #7f1d1d); color: white; padding: 0;
   }
   .container { width: 100%; max-width: 360px; margin: 0 auto; padding: 0 10px; text-align: center; }
-  h1 { font-size: 1.6rem; margin-bottom: 10px; text-shadow: 0 2px 3px rgba(0,0,0,0.3); }
-  .card {
-    width: 100%; margin: 10px 0; padding: 16px; border-radius: 16px;
-    background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
-    backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.25);
-  }
+  h1 { font-size: 1.8rem; margin-bottom: 10px; text-shadow: 0 2px 3px rgba(0,0,0,0.3); }
+  .card { width: 100%; margin: 10px 0; padding: 16px; border-radius: 16px;
+         background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+         backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.25); }
   #totalCount { font-size: 3rem; font-weight: 800; color: #fcd34d; }
   #userCount { font-size: 2rem; font-weight: 700; color: #a3e635; }
-  button {
-    width: 100%; padding: 16px; background: #16a34a; color: white;
-    font-size: 1.4rem; border: none; border-radius: 14px; font-weight: 700;
-    cursor: pointer; margin-top: 10px; transition: transform 0.1s ease, background 0.2s ease;
-  }
+  button { width: 100%; padding: 16px; background: #16a34a; color: white; font-size: 1.5rem;
+           border: none; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 10px;
+           transition: transform 0.1s ease, background 0.2s ease; }
   button:hover { background: #15803d; }
   button:active { transform: scale(0.96); background: #166534; }
-  .snowflake {
-    position: fixed; top: -10px; color: white; font-size: 10px;
-    opacity: 0.8; pointer-events: none; user-select: none; z-index: 9999;
-  }
+  .snowflake { position: fixed; top: -10px; color: white; font-size: 10px; opacity: 0.8;
+               pointer-events: none; user-select: none; z-index: 9999; }
   @keyframes fall { to { transform: translateY(110vh); } }
   #logList { margin-top: 10px; text-align: left; max-height: 180px; overflow-y: auto; font-size: 0.85rem; }
 </style>
@@ -64,9 +58,9 @@
 </div>
 
 <script>
-  const pb = new PocketBase("https://impeccable-gemma-shapeless.ngrok-free.dev/"); // your Render URL
+  const pb = new PocketBase("https://impeccable-gemma-shapeless.ngrok-free.dev/");
   const globalCollection = "tree_count";
-  const globalRecordId = "j3omd3twgac4io7"; // <-- REPLACE with your tree_count record ID
+  const globalRecordId = "j3omd3twgac4io7"; // YOUR updated record ID
   const userCollection = "app_users";
 
   let userId = null;
@@ -110,7 +104,6 @@
 
   async function updateCounts(change) {
     try {
-      // Update global count
       const global = await pb.collection(globalCollection).getOne(globalRecordId);
       let newGlobal = global.count + change;
       if (newGlobal < 0) newGlobal = 0;
@@ -118,7 +111,6 @@
       globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
       await pb.collection(globalCollection).update(globalRecordId, { count: newGlobal, logs: globalLogs });
 
-      // Update user count
       const user = await pb.collection(userCollection).getOne(userId);
       let newUserCount = user.count + change;
       if (newUserCount < 0) newUserCount = 0;
