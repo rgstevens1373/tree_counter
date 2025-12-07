@@ -2,17 +2,14 @@ Overall approach:
 - Github repos for backend and front end
 - Backend is a Pocketbase instance running in Render
 - Front end is a static page in Render
-- Use Visual Studio to edit HTML, through Github
-How the tree counter works:
+- Use Visual Studio to edit HTML, through Github How the tree counter works:
 - Backend is in Pocketbase hosted on Render
 	- Free version of Render resets and loses all configs every now and then so I put in a credit card and now they are charging me compute costs, and it appears that I'm still on the "hobby" tier (free) but paying paying for compute costs, and the instance stays stable
- 	- I plan to turn off the paid Render service in January, then turn it on again in November
- - To set it up from scratch:
-	- I configured a local version 
-	- 	Launch Pocketbase locally
-			- Github/pocketbase local
-			- Open Terminal
-			- ./pocketbase serve
+	- I plan to turn off the paid Render service in January, then turn it on again in November
+- To set Pocketbase up from scratch on a new Render instance:
+	- I configured a local version of Pocketbase, use this as a template for configuring Render version
+	- If I can't log in to Render version, it's because the superuser account was wiped. Copy pb_data folder from local to tree_count backend repo.
+	- Launch Pocketbase locally - Github/pocketbase local - Open Terminal - ./pocketbase serve
 		- Go to http://127.0.0.1:8090
 		- Copy collections (app_user and tree_count) and fields
 		- Set API rules for both collections to all be "1=1" (which is 'true')
@@ -21,10 +18,9 @@ How the tree counter works:
 	- Copy that id to the index.html file
 		- Launch Visual Studio
 		- Open rob/github/tree_counter/index.html
-		- Paste in the id 
-			-   const globalRecordId = "gykmuue49xdacdv"; // YOUR updated record ID
+		- Paste in the id
+			- const globalRecordId = "gykmuue49xdacdv"; // YOUR updated record ID
 		- Save the file
-		- Push to github (from Visual Studio)
-Github security
+		- Push to github (from Visual Studio) Github security
 - I created a "fine grained Personal Access Token with a 90 day limit
 - When it expires I will need to do it again, select "content" then "read/write", apply to all repos
