@@ -4,9 +4,9 @@ Overall approach:
 - Front end is a static page in Render
 - Use Visual Studio to edit HTML, through Github
 How the tree counter works:
-- Backend is in Pocketbase
-	- Free version resets and loses all configs every now and then so I had to upgrade to $7/mo plan
- 	- I plan to turn off the paid service in January, then turn it on again in November
+- Backend is in Pocketbase hosted on Render
+	- Free version of Render resets and loses all configs every now and then so I had to upgrade to $7/mo plan
+ 	- I plan to turn off the paid Render service in January, then turn it on again in November
  - To set it up from scratch:
 	- I configured a local version 
 	- 	Launch Pocketbase locally
@@ -25,3 +25,6 @@ How the tree counter works:
 			-   const globalRecordId = "gykmuue49xdacdv"; // YOUR updated record ID
 		- Save the file
 		- Push to github (from Visual Studio)
+Github security
+- I created a "fine grained Personal Access Token with a 90 day limit
+- When it expires I will need to do it again, select "content" then "read/write", apply to all repos
