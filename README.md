@@ -5,7 +5,7 @@ Overall approach:
 - Use Visual Studio to edit HTML, through Github
 How the tree counter works:
 - Backend is in Pocketbase hosted on Render
-	- Free version of Render resets and loses all configs every now and then so I had to upgrade to $7/mo plan
+	- Free version of Render resets and loses all configs every now and then so I put in a credit card and now they are charging me compute costs, and it appears that I'm still on the "hobby" tier (free) but paying paying for compute costs, and the instance stays stable
  	- I plan to turn off the paid Render service in January, then turn it on again in November
  - To set it up from scratch:
 	- I configured a local version 
