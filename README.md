@@ -1,0 +1,21 @@
+How the tree counter works:
+- Frontend and Backend are in Github repos
+- Backend is in Pocketbase
+	- Free version resets and loses all configs every now and then
+	- I configured a local version 
+		- Launch Pocketbase locally
+			- Github/pocketbase local
+			- Open Terminal
+			- ./pocketbase serve
+		- Go to http://127.0.0.1:8090
+		- Copy fields the app_user and tree_count
+		- Set API rules for both to all be "1=1" (which is 'true')
+		- Create one record in tree_count
+		- Copy id to index.html
+	- Copy that ide to the index.html file
+		- Launch Visual Studio
+		- Open rob/github/tree_counter/index.html
+		- Paste in the id 
+			-   const globalRecordId = "gykmuue49xdacdv"; // YOUR updated record ID
+		- Save the file
+		- Push to github (from Visual Studio)
