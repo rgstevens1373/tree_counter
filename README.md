@@ -1,9 +1,10 @@
 How the tree counter works:
 - Frontend and Backend are in Github repos
 - Backend is in Pocketbase
-	- Free version resets and loses all configs every now and then
+	- Free version resets and loses all configs every now and then so I had to upgrade to $7/mo plan
+ - To set it up from scratch:
 	- I configured a local version 
-		- Launch Pocketbase locally
+	- 	Launch Pocketbase locally
 			- Github/pocketbase local
 			- Open Terminal
 			- ./pocketbase serve
