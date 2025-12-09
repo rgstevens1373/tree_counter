@@ -10,29 +10,127 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; overflow-x: hidden; min-height: 100vh; }
+
   body {
-    display: flex; justify-content: center; align-items: flex-start;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-    background: linear-gradient(#b91c1c, #7f1d1d); color: white; padding: 0;
+    background: linear-gradient(#dc2626, #7f1d1d);
+    color: white;
+    padding: 0;
   }
-  .container { width: 100%; max-width: 360px; margin: 0 auto; padding: 0 10px; text-align: center; }
-  h1 { font-size: 1.8rem; margin-bottom: 10px; text-shadow: 0 2px 3px rgba(0,0,0,0.3); }
-  .card { width: 100%; margin: 10px 0; padding: 16px; border-radius: 16px;
-         background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
-         backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.25); }
-  #totalCount { font-size: 3rem; font-weight: 800; color: #fcd34d; }
-  #userCount { font-size: 2rem; font-weight: 700; color: #a3e635; }
-  button { width: 100%; padding: 16px; background: #16a34a; color: white; font-size: 1.5rem;
-           border: none; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 10px;
-           transition: transform 0.1s ease, background 0.2s ease; }
-  button:hover { background: #15803d; }
-  button:active { transform: scale(0.96); background: #166534; }
-  .snowflake { position: fixed; top: -10px; color: white; font-size: 10px; opacity: 0.8;
-               pointer-events: none; user-select: none; z-index: 9999; }
-  @keyframes fall { to { transform: translateY(110vh); } }
-  #logList { margin-top: 10px; text-align: left; max-height: 180px; overflow-y: auto; font-size: 0.85rem; }
+
+  .container {
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 0 10px;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 3px rgba(0,0,0,0.3);
+  }
+
+  .card {
+    width: 100%;
+    margin: 10px 0;
+    padding: 16px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+  }
+
+  #totalCount {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #fcd34d;
+  }
+
+  #userCount {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #a3e635;
+  }
+
+  /* Main buttons */
+  button {
+    width: 100%;
+    padding: 16px;
+    background: #22c55e;
+    color: white;
+    font-size: 1.5rem;
+    border: none;
+    border-radius: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.1s ease, background 0.2s ease;
+  }
+
+  button:hover {
+    background: #16a34a;
+  }
+
+  button:active {
+    transform: scale(0.96);
+    background: #15803d;
+  }
+
+  /* Remove button */
+  .remove-btn {
+    padding: 10px;
+    font-size: 1rem;
+    background: #ef4444;
+  }
+
+  .remove-btn:hover {
+    background: #dc2626;
+  }
+
+  .remove-btn:active {
+    background: #b91c1c;
+    transform: scale(0.96);
+  }
+
+  /* White, outlined ❌ so it never blends into button */
+  .remove-icon {
+    color: white;
+    text-shadow: 0 0 3px rgba(0,0,0,0.7);
+    font-weight: 900;
+  }
+
+  /* Snowfall */
+  .snowflake {
+    position: fixed;
+    top: -10px;
+    color: white;
+    font-size: 10px;
+    opacity: 0.8;
+    pointer-events: none;
+    user-select: none;
+    z-index: 9999;
+  }
+
+  @keyframes fall {
+    to { transform: translateY(110vh); }
+  }
+
+  #logList {
+    margin-top: 10px;
+    text-align: left;
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+  }
 </style>
 </head>
+
 <body>
 <div class="container">
   <h1>🎄 Tree Counter 🎄</h1>
@@ -47,8 +145,12 @@
   <div class="card">
     <div>Your Trees</div>
     <div id="userCount">0</div>
+
     <button onclick="handleAdd()">🎁 Add Tree</button>
-    <button onclick="handleRemove()">❌ Remove Tree</button>
+
+    <button class="remove-btn" onclick="handleRemove()">
+      <span class="remove-icon">❌</span> Remove Tree
+    </button>
   </div>
 
   <div class="card">
@@ -60,7 +162,7 @@
 <script>
   const pb = new PocketBase("https://tree-counter-backend.onrender.com");
   const globalCollection = "tree_count";
-  const globalRecordId = "gykmuue49xdacdv"; // YOUR updated record ID
+  const globalRecordId = "gykmuue49xdacdv";
   const userCollection = "app_users";
 
   let userId = null;
@@ -73,6 +175,7 @@
       if (!userName) { alert("Name is required!"); return; }
       localStorage.setItem("treeUserName", userName);
     }
+
     try {
       const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
       userId = existing.id;
@@ -90,6 +193,7 @@
     try {
       const global = await pb.collection(globalCollection).getOne(globalRecordId);
       document.getElementById("totalCount").textContent = global.count;
+
       if (userId) {
         const user = await pb.collection(userCollection).getOne(userId);
         document.getElementById("userCount").textContent = user.count;
@@ -99,24 +203,39 @@
     }
   }
 
-  async function handleAdd() { await updateCounts(1); triggerSnow(); }
-  async function handleRemove() { await updateCounts(-1); triggerSnow(); }
+  async function handleAdd() {
+    await updateCounts(1);
+    triggerSnow();
+  }
+
+  async function handleRemove() {
+    await updateCounts(-1);
+    triggerSnow();
+  }
 
   async function updateCounts(change) {
     try {
       const global = await pb.collection(globalCollection).getOne(globalRecordId);
-      let newGlobal = global.count + change;
-      if (newGlobal < 0) newGlobal = 0;
+      let newGlobal = Math.max(0, global.count + change);
+
       let globalLogs = global.logs || [];
       globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-      await pb.collection(globalCollection).update(globalRecordId, { count: newGlobal, logs: globalLogs });
+
+      await pb.collection(globalCollection).update(globalRecordId, {
+        count: newGlobal,
+        logs: globalLogs
+      });
 
       const user = await pb.collection(userCollection).getOne(userId);
-      let newUserCount = user.count + change;
-      if (newUserCount < 0) newUserCount = 0;
+      let newUserCount = Math.max(0, user.count + change);
+
       let userLogs = user.logs || [];
       userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-      await pb.collection(userCollection).update(userId, { count: newUserCount, logs: userLogs });
+
+      await pb.collection(userCollection).update(userId, {
+        count: newUserCount,
+        logs: userLogs
+      });
 
       await loadData();
     } catch (err) {
@@ -146,15 +265,23 @@
 
   async function viewLogs() {
     if (!userId) return;
+
     try {
       const user = await pb.collection(userCollection).getOne(userId);
-      const logs = (user.logs || []).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+      const logs = (user.logs || []).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
       const logDiv = document.getElementById("logList");
       logDiv.innerHTML = "";
-      if (logs.length === 0) { logDiv.textContent = "No log entries yet."; return; }
+
+      if (logs.length === 0) {
+        logDiv.textContent = "No log entries yet.";
+        return;
+      }
+
       logs.forEach(entry => {
         const dateStr = new Date(entry.timestamp).toLocaleString();
         const typeStr = entry.type === "add" ? "Added 🎄" : "Removed ❌";
+
         const div = document.createElement("div");
         div.textContent = `${dateStr}: ${typeStr}`;
         logDiv.appendChild(div);
@@ -170,5 +297,6 @@
     await loadData();
   })();
 </script>
+
 </body>
 </html>
