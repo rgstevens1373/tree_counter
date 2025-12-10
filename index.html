@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>🎄 Tree Counter 🎄</title>
+
+<script src="https://unpkg.com/pocketbase@latest/dist/pocketbase.umd.js"></script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; overflow-x: hidden; min-height: 100vh; }
+  body {
+    display: flex; justify-content: center; align-items: flex-start;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    background: linear-gradient(#dc2626, #7f1d1d); color: white;
+  }
+
+  .container { width: 100%; max-width: 360px; padding: 10px; text-align: center; }
+  h1 { font-size: 1.8rem; margin-bottom: 10px; text-shadow: 0 2px 3px rgba(0,0,0,0.3); }
+
+  .card {
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 10px 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+  }
+
+  #totalCount { font-size: 3rem; font-weight: 800; color: #fcd34d; }
+  #userCount { font-size: 2rem; font-weight: 700; color: #a3e635; }
+
+  button {
+    width: 100%;
+    padding: 16px;
+    background: #22c55e;
+    color: white;
+    font-size: 1.5rem;
+    border: none;
+    border-radius: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.1s ease, background 0.2s ease;
+  }
+  button:hover { background: #16a34a; }
+  button:active { transform: scale(0.96); background: #15803d; }
+
+  .remove-btn {
+    padding: 10px;
+    font-size: 1rem;
+    background: #ef4444;
+  }
+  .remove-btn:hover { background: #dc2626; }
+  .remove-btn:active { background: #b91c1c; }
+
+  .snowflake {
+    position: fixed; top: -10px; color: white; font-size: 10px;
+    opacity: 0.8; pointer-events: none; user-select: none; z-index: 9999;
+  }
+
+  @keyframes fall { to { transform: translateY(110vh); } }
+
+  #logList {
+    margin-top: 10px;
+    text-align: left;
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h1>🎄 Tree Counter 🎄</h1>
+
+  <audio id="sleighAudio" src="https://www.orangefreesounds.com/wp-content/uploads/2016/12/Sleigh-bells-sound.mp3" preload="auto"></audio>
+
+  <div class="card">
+    <div>Total Trees</div>
+    <div id="totalCount">0</div>
+  </div>
+
+  <div class="card">
+    <div>Your Trees</div>
+    <div id="userCount">0</div>
+
+    <button onclick="handleAdd()">🎁 Add Tree</button>
+
+    <button class="remove-btn" onclick="handleRemove()">
+      <span>❌</span> Remove Tree
+    </button>
+  </div>
+
+  <div class="card">
+    <button onclick="viewLogs()">📜 View My Log</button>
+    <div id="logList"></div>
+  </div>
+</div>
+
+<script>
+  const pb = new PocketBase("https://tree-counter-backend.onrender.com");
+  const globalCollection = "tree_count";
+  const globalRecordId = "ubr2lvzy7905x8q";
+  const userCollection = "app_users";
+
+  let userId = null;
+  let userName = null;
+
+  async function initUser() {
+    userName = localStorage.getItem("treeUserName");
+    if (!userName) {
+      userName = prompt("Enter your name:");
+      if (!userName) return alert("Name is required!");
+      localStorage.setItem("treeUserName", userName);
+    }
+
+    try {
+      const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
+      userId = existing.id;
+    } catch {
+      const newUser = await pb.collection(userCollection).create({
+        name: userName,
+        trees: 0,
+        logs: []
+      });
+      userId = newUser.id;
+    }
+  }
+
+  async function loadData() {
+    try {
+      const global = await pb.collection(globalCollection).getOne(globalRecordId);
+      document.getElementById("totalCount").textContent = global.count;
+
+      if (userId) {
+        const user = await pb.collection(userCollection).getOne(userId);
+        document.getElementById("userCount").textContent = user.trees;
+      }
+    } catch (err) {
+      console.error("Load failed:", err);
+    }
+  }
+
+  async function handleAdd() { await updateCounts(1); triggerSnow(); }
+  async function handleRemove() { await updateCounts(-1); triggerSnow(); }
+
+  async function updateCounts(change) {
+    try {
+      const global = await pb.collection(globalCollection).getOne(globalRecordId);
+
+      let newGlobal = Math.max(0, global.count + change);
+      let globalLogs = global.logs || [];
+      globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
+
+      await pb.collection(globalCollection).update(globalRecordId, {
+        count: newGlobal,
+        logs: globalLogs
+      });
+
+      const user = await pb.collection(userCollection).getOne(userId);
+      let newUserTrees = Math.max(0, user.trees + change);
+      let userLogs = user.logs || [];
+      userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
+
+      await pb.collection(userCollection).update(userId, {
+        trees: newUserTrees,
+        logs: userLogs
+      });
+
+      await loadData();
+
+    } catch (err) {
+      console.error("Update failed:", err);
+      alert("Error updating counter.");
+    }
+  }
+
+  function triggerSnow() {
+    const audio = document.getElementById("sleighAudio");
+    audio.currentTime = 0;
+    audio.play();
+    setTimeout(() => audio.pause(), 3000);
+
+    for (let i = 0; i < 10; i++) {
+      const flake = document.createElement("div");
+      flake.className = "snowflake";
+      flake.textContent = "❄";
+      flake.style.left = Math.random() * 95 + "vw";
+      flake.style.fontSize = (8 + Math.random() * 10) + "px";
+      flake.style.opacity = 0.6 + Math.random() * 0.4;
+      flake.style.animation = `fall ${5 + Math.random() * 3}s linear`;
+      document.body.appendChild(flake);
+      setTimeout(() => flake.remove(), 6000);
+    }
+  }
+
+  async function viewLogs() {
+    try {
+      const user = await pb.collection(userCollection).getOne(userId);
+      const logs = (user.logs || []).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+      const logDiv = document.getElementById("logList");
+      logDiv.innerHTML = "";
+
+      if (logs.length === 0) {
+        logDiv.textContent = "No log entries yet.";
+        return;
+      }
+
+      logs.forEach(entry => {
+        const dateStr = new Date(entry.timestamp).toLocaleString();
+        const typeStr = entry.type === "add" ? "Added 🎄" : "Removed ❌";
+        const d = document.createElement("div");
+        d.textContent = `${dateStr}: ${typeStr}`;
+        logDiv.appendChild(d);
+      });
+
+    } catch (err) {
+      console.error("Log load error:", err);
+      alert("Could not load logs.");
+    }
+  }
+
+  (async function start() {
+    await initUser();
+    await loadData();
+  })();
+</script>
+
+</body>
+</html>
