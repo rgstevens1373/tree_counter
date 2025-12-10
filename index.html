@@ -35,7 +35,7 @@
   button {
     width: 100%;
     padding: 16px;
-    background: #22c55e; /* softer green */
+    background: #22c55e;
     color: white;
     font-size: 1.5rem;
     border: none;
@@ -91,7 +91,7 @@
     <button onclick="handleAdd()">🎁 Add Tree</button>
 
     <button class="remove-btn" onclick="handleRemove()">
-      <span class="remove-icon">❌</span> Remove Tree
+      <span>❌</span> Remove Tree
     </button>
   </div>
 
@@ -104,7 +104,7 @@
 <script>
   const pb = new PocketBase("https://tree-counter-backend.onrender.com");
   const globalCollection = "tree_count";
-  const globalRecordId = "ubr2lvzy7905x8q"; 
+  const globalRecordId = "ubr2lvzy7905x8q";
   const userCollection = "app_users";
 
   let userId = null;
@@ -124,7 +124,7 @@
     } catch {
       const newUser = await pb.collection(userCollection).create({
         name: userName,
-        count: 0,
+        trees: 0,
         logs: []
       });
       userId = newUser.id;
@@ -138,7 +138,7 @@
 
       if (userId) {
         const user = await pb.collection(userCollection).getOne(userId);
-        document.getElementById("userCount").textContent = user.count;
+        document.getElementById("userCount").textContent = user.trees;
       }
     } catch (err) {
       console.error("Load failed:", err);
@@ -162,12 +162,12 @@
       });
 
       const user = await pb.collection(userCollection).getOne(userId);
-      let newUserCount = Math.max(0, user.count + change);
+      let newUserTrees = Math.max(0, user.trees + change);
       let userLogs = user.logs || [];
       userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
 
       await pb.collection(userCollection).update(userId, {
-        count: newUserCount,
+        trees: newUserTrees,
         logs: userLogs
       });
 
