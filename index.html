@@ -1,302 +1,303 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>🎄 Tree Counter 🎄</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>🎄 Tree Counter (Full)</title>
 
+<!-- PocketBase JS -->
 <script src="https://unpkg.com/pocketbase@latest/dist/pocketbase.umd.js"></script>
 
 <style>
+  /* --- Layout / Theme (mobile-first) --- */
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { width: 100%; overflow-x: hidden; min-height: 100vh; }
-
+  html,body { width:100%; min-height:100vh; overflow-x:hidden; -webkit-tap-highlight-color: transparent; }
   body {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-    background: linear-gradient(#dc2626, #7f1d1d);
-    color: white;
-    padding: 0;
+    display:flex; justify-content:center; align-items:flex-start;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: linear-gradient(#ef4444, #7f1d1d); color:white; padding:18px 0;
   }
+  .container { width:100%; max-width:420px; padding:0 14px; text-align:center; }
 
-  .container {
-    width: 100%;
-    max-width: 360px;
-    margin: 0 auto;
-    padding: 0 10px;
-    text-align: center;
-  }
-
-  h1 {
-    font-size: 1.8rem;
-    margin-bottom: 10px;
-    text-shadow: 0 2px 3px rgba(0,0,0,0.3);
-  }
+  h1 { font-size:1.5rem; margin-bottom:10px; text-shadow:0 2px 3px rgba(0,0,0,0.35); }
 
   .card {
-    width: 100%;
-    margin: 10px 0;
-    padding: 16px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.15);
-    border: 2px solid rgba(255,255,255,0.3);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    padding:14px;
+    border-radius:14px;
+    margin:10px 0;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
   }
 
-  #totalCount {
-    font-size: 3rem;
-    font-weight: 800;
-    color: #fcd34d;
-  }
+  #totalCount { font-size:2.8rem; font-weight:800; color:#fcd34d; margin-top:6px; }
+  #userCount { font-size:1.6rem; font-weight:700; color:#bbf7d0; margin-top:6px; }
 
-  #userCount {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #a3e635;
+  /* Tree image button (option D) */
+  .tree-button {
+    width:120px;
+    height:120px;
+    object-fit:contain;
+    cursor:pointer;
+    border-radius:14px;
+    border: 2px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.02);
+    display:inline-block;
+    transition: transform .13s ease, box-shadow .13s ease;
+    margin:12px auto 6px;
   }
+  .tree-button:hover { transform: scale(1.06); box-shadow: 0 8px 18px rgba(0,0,0,0.35); }
+  .tree-button:active { transform: scale(0.94); }
 
-  /* Main buttons */
-  button {
-    width: 100%;
-    padding: 16px;
-    background: #22c55e;
-    color: white;
-    font-size: 1.5rem;
-    border: none;
-    border-radius: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: transform 0.1s ease, background 0.2s ease;
-  }
-
-  button:hover {
-    background: #16a34a;
-  }
-
-  button:active {
-    transform: scale(0.96);
-    background: #15803d;
-  }
-
-  /* Remove button */
+  /* Remove button (smaller, red) */
   .remove-btn {
-    padding: 10px;
-    font-size: 1rem;
-    background: #ef4444;
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    font-size:1rem;
+    background:#ef4444;
+    color:white;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:700;
+    transition: transform .1s ease, background .12s ease;
   }
+  .remove-btn:hover { background:#dc2626; }
+  .remove-btn:active { transform: scale(.97); background:#b91c1c; }
 
-  .remove-btn:hover {
-    background: #dc2626;
+  .remove-icon { color:white; text-shadow:0 0 3px rgba(0,0,0,0.6); font-weight:900; margin-right:8px; }
+
+  /* Log list */
+  #logList { text-align:left; max-height:220px; overflow:auto; font-size:0.9rem; margin-top:8px; }
+  #logList div { padding:6px 4px; border-bottom:1px dashed rgba(255,255,255,0.06); }
+
+  .small-btn {
+    display:inline-block; padding:8px 12px; margin-top:10px; border-radius:10px; background:rgba(255,255,255,0.06);
+    color:white; border:1px solid rgba(255,255,255,0.08); cursor:pointer; font-weight:600;
   }
+  .small-btn:active { transform: translateY(1px); }
 
-  .remove-btn:active {
-    background: #b91c1c;
-    transform: scale(0.96);
-  }
+  .status { margin-top:8px; font-size:0.9rem; opacity:0.95; }
+  .muted { opacity:0.8; font-size:0.9rem; }
 
-  /* White, outlined ❌ so it never blends into button */
-  .remove-icon {
-    color: white;
-    text-shadow: 0 0 3px rgba(0,0,0,0.7);
-    font-weight: 900;
-  }
-
-  /* Snowfall */
-  .snowflake {
-    position: fixed;
-    top: -10px;
-    color: white;
-    font-size: 10px;
-    opacity: 0.8;
-    pointer-events: none;
-    user-select: none;
-    z-index: 9999;
-  }
-
-  @keyframes fall {
-    to { transform: translateY(110vh); }
-  }
-
-  #logList {
-    margin-top: 10px;
-    text-align: left;
-    max-height: 180px;
-    overflow-y: auto;
-    font-size: 0.85rem;
+  /* very small screens */
+  @media (max-width:360px) {
+    .tree-button { width:100px; height:100px; }
+    #totalCount { font-size:2.2rem; }
   }
 </style>
 </head>
-
 <body>
-<div class="container">
-  <h1>🎄 Tree Counter 🎄</h1>
+  <div class="container">
+    <h1>🎄 Tree Counter</h1>
 
-  <audio id="sleighAudio" src="https://www.orangefreesounds.com/wp-content/uploads/2016/12/Sleigh-bells-sound.mp3" preload="auto"></audio>
+    <div class="card" id="globalCard">
+      <div>Total Trees</div>
+      <div id="totalCount">—</div>
+      <div class="muted" style="font-size:.9rem; margin-top:6px;">Global count and activity log</div>
+    </div>
 
-  <div class="card">
-    <div>Total Trees</div>
-    <div id="totalCount">0</div>
+    <div class="card" id="userCard">
+      <div>Your Trees</div>
+      <div id="userCount">—</div>
+
+      <!-- === Replace PB_URL and GLOBAL_RECORD_ID below BEFORE using === -->
+      <!-- Option D: image button used as Add Tree control (clicking the image calls handleAdd()) -->
+      <img
+        id="addTreeImage"
+        class="tree-button"
+        src="https://oaidalleapiprodscus.blob.core.windows.net/private/org-9Poo2wYt1dZQWqZXecxYfrsO/user-YzZPjJ0r32SMhCliVUHjxEuC/img-HkDWl95Tftq7VhccAy4qEoA9.png"
+        alt="Add Tree"
+        onclick="handleAdd()"
+        />
+
+      <!-- Fallback textual button if image fails to load -->
+      <button id="addFallback" style="display:none; margin-top:8px;" onclick="handleAdd()">🎁 Add Tree</button>
+
+      <button class="remove-btn" onclick="handleRemove()"><span class="remove-icon">✖️</span>Remove Tree</button>
+    </div>
+
+    <div class="card">
+      <button class="small-btn" onclick="viewLogs()">📜 View My Log</button>
+      <button class="small-btn" onclick="downloadAllLogsCSV()">⬇️ Download CSV</button>
+      <div id="status" class="status"></div>
+      <div id="logList"></div>
+    </div>
+
+    <div style="height:10px"></div>
   </div>
-
-  <div class="card">
-    <div>Your Trees</div>
-    <div id="userCount">0</div>
-
-    <button onclick="handleAdd()">🎁 Add Tree</button>
-
-    <button class="remove-btn" onclick="handleRemove()">
-      <span class="remove-icon">❌</span> Remove Tree
-    </button>
-  </div>
-
-  <div class="card">
-    <button onclick="viewLogs()">📜 View My Log</button>
-    <div id="logList"></div>
-  </div>
-</div>
 
 <script>
-  const pb = new PocketBase("https://tree-counter-backend.onrender.com");
-  const globalCollection = "tree_count";
-  const globalRecordId = "gykmuue49xdacdv";
-  const userCollection = "app_users";
+/*
+  IMPORTANT: Edit these two values to match your Render deployment BEFORE opening this page:
+*/
+const PB_URL = "https://tree-counter-backend.onrender.com"; // <-- your Render PocketBase root URL
+const GLOBAL_RECORD_ID = "ubr2lvzy7905x8q"; // <-- the id of the single tree_count record
 
-  let userId = null;
-  let userName = null;
+/* Collection names (match exactly to your PocketBase collections) */
+const GLOBAL_COLLECTION = "tree_count";
+const USER_COLLECTION   = "app_users";
 
-  async function initUser() {
-    userName = localStorage.getItem("treeUserName");
+/* PocketBase client */
+const pb = new PocketBase(PB_URL);
+
+/* Local state */
+let userId = null;
+let userName = null;
+
+/* Utility: set status text */
+function setStatus(msg, isError=false) {
+  const el = document.getElementById("status");
+  el.textContent = msg || "";
+  el.style.color = isError ? "#ffdddd" : "white";
+}
+
+/* --- Initialize user: prompt for name or reuse localStorage --- */
+async function initUser() {
+  userName = localStorage.getItem("treeUserName");
+  if (!userName) {
+    userName = prompt("Enter your name (first name is fine):");
     if (!userName) {
-      userName = prompt("Enter your name:");
-      if (!userName) { alert("Name is required!"); return; }
-      localStorage.setItem("treeUserName", userName);
+      alert("Name required to use the app.");
+      return;
     }
+    localStorage.setItem("treeUserName", userName);
+  }
 
+  // Try to find existing user record
+  try {
+    const existing = await pb.collection(USER_COLLECTION).getFirstListItem(`name="${userName}"`);
+    userId = existing.id;
+    setStatus(`Welcome back, ${userName}`);
+  } catch (err) {
+    // Not found -> create
     try {
-      const existing = await pb.collection(userCollection).getFirstListItem(`name="${userName}"`);
-      userId = existing.id;
-    } catch {
-      const newUser = await pb.collection(userCollection).create({
+      const newUser = await pb.collection(USER_COLLECTION).create({
         name: userName,
-        count: 0,
+        trees: 0,
         logs: []
       });
       userId = newUser.id;
+      setStatus(`Hi ${userName} — new user created`);
+    } catch (e) {
+      console.error("Failed creating user", e);
+      setStatus("Error creating user. See console.", true);
     }
   }
+}
 
-  async function loadData() {
-    try {
-      const global = await pb.collection(globalCollection).getOne(globalRecordId);
-      document.getElementById("totalCount").textContent = global.count;
-
-      if (userId) {
-        const user = await pb.collection(userCollection).getOne(userId);
-        document.getElementById("userCount").textContent = user.count;
-      }
-    } catch (err) {
-      console.error("Load data failed:", err);
+/* --- Load counts for display --- */
+async function loadData() {
+  if (!GLOBAL_RECORD_ID || GLOBAL_RECORD_ID.includes("REPLACE")) {
+    setStatus("Please set GLOBAL_RECORD_ID in the script before use.", true);
+    return;
+  }
+  try {
+    const globalRec = await pb.collection(GLOBAL_COLLECTION).getOne(GLOBAL_RECORD_ID);
+    document.getElementById("totalCount").textContent = typeof globalRec.count === "number" ? globalRec.count : 0;
+    if (userId) {
+      const u = await pb.collection(USER_COLLECTION).getOne(userId);
+      document.getElementById("userCount").textContent = typeof u.trees === "number" ? u.trees : 0;
+    } else {
+      document.getElementById("userCount").textContent = "—";
     }
+    setStatus(""); // clear status
+  } catch (err) {
+    console.error("loadData failed", err);
+    setStatus("Failed to load data. Check console.", true);
   }
+}
 
-  async function handleAdd() {
-    await updateCounts(1);
-    triggerSnow();
-  }
+/* --- Update both global and user records atomically-ish (two calls) --- */
+async function updateCounts(change) {
+  if (!userId) { setStatus("No user ID — refresh and enter name.", true); return; }
 
-  async function handleRemove() {
-    await updateCounts(-1);
-    triggerSnow();
-  }
+  try {
+    // fetch latest global record
+    const globalRec = await pb.collection(GLOBAL_COLLECTION).getOne(GLOBAL_RECORD_ID);
+    const globalCount = Math.max(0, (globalRec.count || 0) + change);
 
-  async function updateCounts(change) {
-    try {
-      const global = await pb.collection(globalCollection).getOne(globalRecordId);
-      let newGlobal = Math.max(0, global.count + change);
+    // prepare log entry
+    const entry = {
+      userId: userId,
+      userName: userName,
+      change: change,
+      ts: new Date().toISOString()
+    };
 
-      let globalLogs = global.logs || [];
-      globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
+    // update global logs array (ensure array)
+    const glogs = Array.isArray(globalRec.log) ? globalRec.log.slice() : [];
+    glogs.push(entry);
 
-      await pb.collection(globalCollection).update(globalRecordId, {
-        count: newGlobal,
-        logs: globalLogs
-      });
+    // patch global
+    await pb.collection(GLOBAL_COLLECTION).update(GLOBAL_RECORD_ID, {
+      count: globalCount,
+      log: glogs
+    });
 
-      const user = await pb.collection(userCollection).getOne(userId);
-      let newUserCount = Math.max(0, user.count + change);
+    // update user record
+    const userRec = await pb.collection(USER_COLLECTION).getOne(userId);
+    const newUserCount = Math.max(0, (userRec.trees || 0) + change);
+    const ulogs = Array.isArray(userRec.logs) ? userRec.logs.slice() : [];
+    ulogs.push(entry);
 
-      let userLogs = user.logs || [];
-      userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
+    await pb.collection(USER_COLLECTION).update(userId, {
+      trees: newUserCount,
+      logs: ulogs
+    });
 
-      await pb.collection(userCollection).update(userId, {
-        count: newUserCount,
-        logs: userLogs
-      });
-
-      await loadData();
-    } catch (err) {
-      console.error("Update failed:", err);
-      alert("Error updating counter. See console.");
-    }
-  }
-
-  function triggerSnow() {
-    const audio = document.getElementById("sleighAudio");
-    audio.currentTime = 0;
-    audio.play();
-    setTimeout(() => audio.pause(), 3000);
-
-    for (let i = 0; i < 10; i++) {
-      const flake = document.createElement("div");
-      flake.className = "snowflake";
-      flake.textContent = "❄";
-      flake.style.left = Math.random() * 95 + "vw";
-      flake.style.fontSize = (8 + Math.random() * 10) + "px";
-      flake.style.opacity = 0.6 + Math.random() * 0.4;
-      flake.style.animation = `fall ${5 + Math.random() * 3}s linear`;
-      document.body.appendChild(flake);
-      setTimeout(() => flake.remove(), 6000);
-    }
-  }
-
-  async function viewLogs() {
-    if (!userId) return;
-
-    try {
-      const user = await pb.collection(userCollection).getOne(userId);
-      const logs = (user.logs || []).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-      const logDiv = document.getElementById("logList");
-      logDiv.innerHTML = "";
-
-      if (logs.length === 0) {
-        logDiv.textContent = "No log entries yet.";
-        return;
-      }
-
-      logs.forEach(entry => {
-        const dateStr = new Date(entry.timestamp).toLocaleString();
-        const typeStr = entry.type === "add" ? "Added 🎄" : "Removed ❌";
-
-        const div = document.createElement("div");
-        div.textContent = `${dateStr}: ${typeStr}`;
-        logDiv.appendChild(div);
-      });
-    } catch (err) {
-      console.error("Failed to fetch logs:", err);
-      alert("Could not load logs. See console.");
-    }
-  }
-
-  (async function start() {
-    await initUser();
+    // reload display
     await loadData();
-  })();
-</script>
+  } catch (err) {
+    console.error("updateCounts failed", err);
+    setStatus("Error updating counter. See console.", true);
+    alert("Error updating counter. See console.");
+  }
+}
 
-</body>
-</html>
+/* --- UI handlers --- */
+async function handleAdd() { await updateCounts(1); triggerSnow(); }
+async function handleRemove() { await updateCounts(-1); triggerSnow(); }
+
+/* --- Snow + sound (small flourish) --- */
+function triggerSnow() {
+  // play sleigh for 3s
+  const audio = document.getElementById("sleighAudio");
+  if (audio) {
+    audio.currentTime = 0;
+    audio.play().catch(()=>{/* autoplay may be blocked on some browsers; that's fine */});
+    setTimeout(()=>audio.pause(), 3000);
+  }
+
+  // create some snow flakes
+  for (let i=0;i<10;i++) {
+    const f = document.createElement("div");
+    f.className = "snowflake";
+    f.textContent = "❄";
+    f.style.left = `${Math.random() * 90 + 5}vw`;
+    f.style.fontSize = `${8 + Math.random()*12}px`;
+    f.style.opacity = (0.5 + Math.random()*0.5);
+    f.style.animation = `fall ${4 + Math.random()*3}s linear`;
+    document.body.appendChild(f);
+    setTimeout(()=>f.remove(), 7000);
+  }
+}
+
+/* --- View only current user's logs (from app_users.logs) --- */
+async function viewLogs() {
+  if (!userId) { alert("No user — refresh and enter your name."); return; }
+  try {
+    const u = await pb.collection(USER_COLLECTION).getOne(userId);
+    const logs = Array.isArray(u.logs) ? u.logs.slice().sort((a,b)=>new Date(a.ts)-new Date(b.ts)) : [];
+    const div = document.getElementById("logList");
+    div.innerHTML = "";
+    if (logs.length === 0) {
+      div.textContent = "No log entries yet.";
+      return;
+    }
+    logs.forEach(e => {
+      const d = new Date(e.ts).toLocaleString();
+      const t = e.change > 0 ? `Added 🎄` : `Removed ✖️`;
+      const el = document.createElement("div");
+      el.textContent = `${
