@@ -56,6 +56,15 @@
   .remove-btn:hover { background: #dc2626; }
   .remove-btn:active { background: #b91c1c; }
 
+.log-btn {
+  padding: 10px;
+  font-size: 1rem;
+  background: #22c55e;
+}
+
+.log-btn:hover { background: #16a34a; }
+.log-btn:active { background: #15803d; }
+
   .snowflake {
     position: fixed; top: -10px; color: white; font-size: 10px;
     opacity: 0.8; pointer-events: none; user-select: none; z-index: 9999;
@@ -69,6 +78,10 @@
     max-height: 180px;
     overflow-y: auto;
     font-size: 0.85rem;
+  }
+
+  .hidden {
+    display: none;
   }
 </style>
 </head>
@@ -91,13 +104,13 @@
     <button onclick="handleAdd()">🎁 Add Tree</button>
 
     <button class="remove-btn" onclick="handleRemove()">
-      <span>❌</span> Remove Tree
+      ❌ Remove Tree
     </button>
   </div>
 
   <div class="card">
-    <button onclick="viewLogs()">📜 View My Log</button>
-    <div id="logList"></div>
+  <button id="toggleLogBtn" class="log-btn">📜 View My Log</button>
+    <div id="logList" class="hidden"></div>
   </div>
 </div>
 
@@ -109,6 +122,8 @@
 
   let userId = null;
   let userName = null;
+  let logsVisible = false;
+  let logsLoaded = false;
 
   async function initUser() {
     userName = localStorage.getItem("treeUserName");
@@ -151,27 +166,21 @@
   async function updateCounts(change) {
     try {
       const global = await pb.collection(globalCollection).getOne(globalRecordId);
-
-      let newGlobal = Math.max(0, global.count + change);
-      let globalLogs = global.logs || [];
-      globalLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-
       await pb.collection(globalCollection).update(globalRecordId, {
-        count: newGlobal,
-        logs: globalLogs
+        count: Math.max(0, global.count + change),
+        logs: [...(global.logs || []), { type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() }]
       });
 
       const user = await pb.collection(userCollection).getOne(userId);
-      let newUserTrees = Math.max(0, user.trees + change);
-      let userLogs = user.logs || [];
-      userLogs.push({ type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() });
-
       await pb.collection(userCollection).update(userId, {
-        trees: newUserTrees,
-        logs: userLogs
+        trees: Math.max(0, user.trees + change),
+        logs: [...(user.logs || []), { type: change > 0 ? "add" : "remove", timestamp: new Date().toISOString() }]
       });
 
+      logsLoaded = false;
       await loadData();
+
+      if (logsVisible) await loadLogs();
 
     } catch (err) {
       console.error("Update failed:", err);
@@ -198,32 +207,39 @@
     }
   }
 
-  async function viewLogs() {
-    try {
-      const user = await pb.collection(userCollection).getOne(userId);
-      const logs = (user.logs || []).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+  async function loadLogs() {
+    const user = await pb.collection(userCollection).getOne(userId);
+    const logs = (user.logs || []).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const logDiv = document.getElementById("logList");
+    logDiv.innerHTML = "";
 
-      const logDiv = document.getElementById("logList");
-      logDiv.innerHTML = "";
-
-      if (logs.length === 0) {
-        logDiv.textContent = "No log entries yet.";
-        return;
-      }
-
-      logs.forEach(entry => {
-        const dateStr = new Date(entry.timestamp).toLocaleString();
-        const typeStr = entry.type === "add" ? "Added 🎄" : "Removed ❌";
-        const d = document.createElement("div");
-        d.textContent = `${dateStr}: ${typeStr}`;
-        logDiv.appendChild(d);
-      });
-
-    } catch (err) {
-      console.error("Log load error:", err);
-      alert("Could not load logs.");
+    if (!logs.length) {
+      logDiv.textContent = "No log entries yet.";
+      return;
     }
+
+    logs.forEach(entry => {
+      const d = document.createElement("div");
+      d.textContent = `${new Date(entry.timestamp).toLocaleString()}: ${entry.type === "add" ? "Added 🎄" : "Removed ❌"}`;
+      logDiv.appendChild(d);
+    });
+
+    logsLoaded = true;
   }
+
+  document.getElementById("toggleLogBtn").addEventListener("click", async () => {
+    const logDiv = document.getElementById("logList");
+    logsVisible = !logsVisible;
+
+    if (logsVisible) {
+      if (!logsLoaded) await loadLogs();
+      logDiv.classList.remove("hidden");
+      toggleLogBtn.textContent = "🙈 Hide My Log";
+    } else {
+      logDiv.classList.add("hidden");
+      toggleLogBtn.textContent = "📜 View My Log";
+    }
+  });
 
   (async function start() {
     await initUser();
