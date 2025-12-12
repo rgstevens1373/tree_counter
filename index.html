@@ -83,8 +83,46 @@
   .hidden {
     display: none;
   }
+
+#christmasCountdown {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(8px);
+  border-radius: 18px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 1.1rem;
+  z-index: 999;
+}
+
+#christmasCountdown img {
+  width: 48px;
+  height: 48px;
+}
+
+#christmasCountdown span {
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #fde047;
+}
+
 </style>
 </head>
+
+<div id="christmasCountdown">
+  <img
+    src="https://upload.wikimedia.org/wikipedia/commons/4/48/Cute_Santa_Claus_Character_Giving_The_Thumbs_Up.svg"
+    alt="Santa"
+  />
+  <div>
+    <span id="daysToChristmas">0</span> days until Christmas
+  </div>
+</div>
 
 <body>
 <div class="container">
@@ -245,6 +283,22 @@
     await initUser();
     await loadData();
   })();
+
+  function updateChristmasCountdown() {
+  const now = new Date();
+  const year = now.getMonth() === 11 && now.getDate() > 25
+    ? now.getFullYear() + 1
+    : now.getFullYear();
+
+  const christmas = new Date(year, 11, 25); // Dec 25
+  const diffMs = christmas - now;
+  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  document.getElementById("daysToChristmas").textContent = days;
+}
+
+updateChristmasCountdown();
+
 </script>
 
 </body>
